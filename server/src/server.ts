@@ -106,6 +106,25 @@ const widgets = [
       invoking: "Hand-tossing a video",
       invoked: "Served a fresh video"
     }
+  },
+  {
+    id: "kaka-haha",
+    title: "Show Kaka Haha",
+    description: "Display a simple greeting message",
+    htmlSrc: "http://localhost:4444/kaka-haha-2d2b.js",
+    rootElement: "kaka-haha-root",
+    schema: z.object({
+      message: z.string().optional().describe("Optional message to display (not used yet)")
+    }),
+    handler: async (args: { message?: string }) => ({
+      text: "Displayed kaka haha message!",
+      data: { message: args.message }
+    }),
+    meta: {
+      invoking: "Preparing kaka haha...",
+      invoked: "Kaka haha displayed!",
+      widgetDescription: "Renders a simple greeting message 'kaka haha!' in large bold text on a white background."
+    }
   }
 ];
 
