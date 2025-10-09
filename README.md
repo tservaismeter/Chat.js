@@ -1,6 +1,6 @@
-# Chat.js : The chatgpt apps framework
+# Chat.js
 
-A framework for building apps for ChatGPT. Define widgets and schemas - the framework handles MCP resources, tools, and handlers automatically.
+The ChatGPT apps framework. Define widgets and schemas - the framework handles MCP resources, tools, and handlers automatically.
 
 > **For AI Coding Tools**: If you're using an AI coding tool like Cursor, Claude Code, or Codex, try prompting:
 > 
@@ -8,14 +8,23 @@ A framework for building apps for ChatGPT. Define widgets and schemas - the fram
 
 ## Quick Start
 
-### 1. Install & Build
+### 1. Create a New Project
+
+```bash
+npx create-chatgpt-app my-app
+cd my-app
+```
+
+Or clone this repository to use as a starting point.
+
+### 2. Install & Build
 
 ```bash
 pnpm install
 pnpm run build
 ```
 
-### 2. Run (3 terminals)
+### 3. Run (3 terminals)
 
 **Terminal 1** - Frontend assets server:
 ```bash
@@ -34,6 +43,24 @@ ngrok http 8000
 ```
 
 Use the ngrok URL to connect to ChatGPT.
+
+> 💡 **Tip**: If you used `npx create-chatgpt-app`, your project already includes 6 example widgets (pizzaz map, albums, carousel, list, solar-system, and todo) ready to try!
+
+### 4. Testing in ChatGPT
+
+To add these apps to ChatGPT, enable developer mode, and add your apps in **Settings > Connectors**.
+
+To add your local server without deploying it, you can use a tool like **ngrok** to expose your local server to the internet.
+
+For example, once your MCP servers are running, you can run:
+
+```bash
+ngrok http 8000
+```
+
+You will get a public URL that you can use to add your local server to ChatGPT in **Settings > Connectors**.
+
+For example: `https://<custom_endpoint>.ngrok-free.app/mcp`
 
 ## Adding a New Widget
 
