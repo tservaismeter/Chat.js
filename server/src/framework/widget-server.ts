@@ -28,8 +28,8 @@ type SessionRecord = {
 };
 
 /**
- * MCP 위젯 서버 클래스
- * 위젯 정의를 받아서 자동으로 MCP 서버를 생성하고 실행합니다.
+ * MCP Widget Server Class
+ * Automatically creates and runs an MCP server from widget definitions.
  */
 export class McpWidgetServer {
   private config: ServerConfig;
@@ -39,7 +39,7 @@ export class McpWidgetServer {
   constructor(config: ServerConfig) {
     this.config = config;
     
-    // 위젯 메타데이터 사전 생성
+    // Pre-generate widget metadata
     this.widgetMetas = config.widgets.map(widget => ({
       id: widget.id,
       title: widget.title,
@@ -50,7 +50,7 @@ export class McpWidgetServer {
   }
 
   /**
-   * 위젯 정의를 MCP Tool로 변환
+   * Convert widget definition to MCP Tool
    */
   private widgetToTool(widgetMeta: WidgetMeta): Tool {
     const widget = widgetMeta.definition;
@@ -70,7 +70,7 @@ export class McpWidgetServer {
   }
 
   /**
-   * 위젯 정의를 MCP Resource로 변환
+   * Convert widget definition to MCP Resource
    */
   private widgetToResource(widgetMeta: WidgetMeta): Resource {
     const widget = widgetMeta.definition;
@@ -90,7 +90,7 @@ export class McpWidgetServer {
   }
 
   /**
-   * 위젯 정의를 MCP ResourceTemplate으로 변환
+   * Convert widget definition to MCP ResourceTemplate
    */
   private widgetToResourceTemplate(widgetMeta: WidgetMeta): ResourceTemplate {
     const widget = widgetMeta.definition;
@@ -110,7 +110,7 @@ export class McpWidgetServer {
   }
 
   /**
-   * MCP 서버 인스턴스 생성
+   * Create MCP server instance
    */
   private createMcpServer(): Server {
     const server = new Server(
@@ -126,16 +126,16 @@ export class McpWidgetServer {
       }
     );
 
-    // Tools, Resources, ResourceTemplates 생성
+    // Create Tools, Resources, ResourceTemplates
     const tools = this.widgetMetas.map(w => this.widgetToTool(w));
     const resources = this.widgetMetas.map(w => this.widgetToResource(w));
     const resourceTemplates = this.widgetMetas.map(w => this.widgetToResourceTemplate(w));
 
-    // 빠른 조회를 위한 Map
+    // Maps for quick lookup
     const widgetsById = new Map(this.widgetMetas.map(w => [w.id, w]));
     const widgetsByUri = new Map(this.widgetMetas.map(w => [w.templateUri, w]));
 
-    // ListTools 핸들러
+    // ListTools handler
     server.setRequestHandler(
       ListToolsRequestSchema,
       async (_request: ListToolsRequest) => ({
@@ -143,7 +143,7 @@ export class McpWidgetServer {
       })
     );
 
-    // ListResources 핸들러
+    // ListResources handler
     server.setRequestHandler(
       ListResourcesRequestSchema,
       async (_request: ListResourcesRequest) => ({
@@ -151,7 +151,7 @@ export class McpWidgetServer {
       })
     );
 
-    // ReadResource 핸들러
+    // ReadResource handler
     server.setRequestHandler(
       ReadResourceRequestSchema,
       async (request: ReadResourceRequest) => {
@@ -182,7 +182,7 @@ export class McpWidgetServer {
       }
     );
 
-    // ListResourceTemplates 핸들러
+    // ListResourceTemplates handler
     server.setRequestHandler(
       ListResourceTemplatesRequestSchema,
       async (_request: ListResourceTemplatesRequest) => ({
@@ -190,7 +190,7 @@ export class McpWidgetServer {
       })
     );
 
-    // CallTool 핸들러
+    // CallTool handler
     server.setRequestHandler(
       CallToolRequestSchema,
       async (request: CallToolRequest) => {
@@ -202,10 +202,10 @@ export class McpWidgetServer {
 
         const widget = widgetMeta.definition;
 
-        // 스키마를 사용하여 입력 검증 및 파싱
+        // Validate and parse input using schema
         const args = widget.schema.parse(request.params.arguments ?? {});
 
-        // 사용자 정의 핸들러 실행
+        // Execute user-defined handler
         const result = await widget.handler(args);
 
         return {
@@ -231,7 +231,7 @@ export class McpWidgetServer {
   }
 
   /**
-   * SSE 요청 처리
+   * Handle SSE request
    */
   private async handleSseRequest(res: ServerResponse) {
     const postPath = this.config.postPath ?? "/mcp/messages";
@@ -264,7 +264,7 @@ export class McpWidgetServer {
   }
 
   /**
-   * POST 메시지 처리
+   * Handle POST message
    */
   private async handlePostMessage(
     req: IncomingMessage,
@@ -298,7 +298,7 @@ export class McpWidgetServer {
   }
 
   /**
-   * HTTP 서버 시작
+   * Start HTTP server
    */
   start() {
     const port = this.config.port ?? 8000;
@@ -313,7 +313,7 @@ export class McpWidgetServer {
 
       const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
 
-      // CORS preflight 처리
+      // Handle CORS preflight
       if (req.method === "OPTIONS" && (url.pathname === ssePath || url.pathname === postPath)) {
         res.writeHead(204, {
           "Access-Control-Allow-Origin": "*",
@@ -324,13 +324,13 @@ export class McpWidgetServer {
         return;
       }
 
-      // SSE 스트림 시작
+      // Start SSE stream
       if (req.method === "GET" && url.pathname === ssePath) {
         await this.handleSseRequest(res);
         return;
       }
 
-      // POST 메시지 처리
+      // Handle POST message
       if (req.method === "POST" && url.pathname === postPath) {
         await this.handlePostMessage(req, res, url);
         return;
@@ -359,7 +359,7 @@ export class McpWidgetServer {
 }
 
 /**
- * MCP 위젯 서버 생성 헬퍼 함수
+ * Helper function to create MCP widget server
  */
 export function createMcpWidgetServer(config: ServerConfig): McpWidgetServer {
   return new McpWidgetServer(config);

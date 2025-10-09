@@ -1,11 +1,11 @@
 import type { z } from "zod";
 
 /**
- * Zod 스키마를 JSON Schema로 변환
- * 간단한 구현 - 필요시 zod-to-json-schema 라이브러리로 대체 가능
+ * Convert Zod schema to JSON Schema
+ * Simple implementation - can be replaced with zod-to-json-schema library if needed
  */
 export function zodToJsonSchema(schema: z.ZodType): any {
-  // ZodObject의 shape을 추출하여 JSON Schema로 변환
+  // Extract ZodObject's shape and convert to JSON Schema
   const zodDef = (schema as any)._def;
   
   if (zodDef.typeName === "ZodObject") {
@@ -17,7 +17,7 @@ export function zodToJsonSchema(schema: z.ZodType): any {
       const fieldSchema = value as z.ZodType;
       const fieldDef = (fieldSchema as any)._def;
       
-      // 기본 타입 매핑
+      // Basic type mapping
       let type = "string";
       let description = fieldDef.description;
       
@@ -38,7 +38,7 @@ export function zodToJsonSchema(schema: z.ZodType): any {
         ...(description && { description })
       };
       
-      // optional이 아니면 required에 추가
+      // Add to required if not optional
       if (!fieldDef.isOptional && fieldDef.typeName !== "ZodOptional") {
         required.push(key);
       }
@@ -52,7 +52,7 @@ export function zodToJsonSchema(schema: z.ZodType): any {
     };
   }
   
-  // 기본적으로 object 타입 반환
+  // Return object type by default
   return {
     type: "object",
     properties: {},
@@ -61,7 +61,7 @@ export function zodToJsonSchema(schema: z.ZodType): any {
 }
 
 /**
- * 위젯 메타데이터 생성
+ * Generate widget metadata
  */
 export function generateWidgetMeta(
   widgetId: string, 
@@ -80,7 +80,7 @@ export function generateWidgetMeta(
     "openai/resultCanProduceWidget": true
   };
   
-  // widgetDescription이 있으면 추가
+  // Add widgetDescription if provided
   if (widgetDescription) {
     meta["openai/widgetDescription"] = widgetDescription;
   }
@@ -89,7 +89,7 @@ export function generateWidgetMeta(
 }
 
 /**
- * 위젯 HTML 생성
+ * Generate widget HTML
  */
 export function generateWidgetHtml(rootElement: string, htmlSrc: string, cssSrc?: string): string {
   const parts = [`<div id="${rootElement}"></div>`];

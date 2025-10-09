@@ -2,10 +2,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 /**
- * Kaka Haha Widget
- * A simple test widget that displays text
+ * Wow Wow Widget
+ * A simple component that displays text
  */
-function KakaHaha() {
+function WowWow() {
   return (
     <div style={{
       width: '100%',
@@ -24,16 +24,16 @@ function KakaHaha() {
         margin: 0,
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }}>
-        kaka haha!
+        Wow Wow
       </h1>
     </div>
   );
 }
 
 // Mount
-const rootElement = document.getElementById('kaka-haha-root');
+const rootElement = document.getElementById('wowwow-root');
 if (rootElement) {
   const root = createRoot(rootElement);
-  root.render(<KakaHaha />);
+  root.render(<WowWow />);
 }
 

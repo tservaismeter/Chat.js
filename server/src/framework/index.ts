@@ -1,7 +1,7 @@
 /**
  * MCP Widget Server Framework
  * 
- * 위젯과 스키마만 정의하면 MCP 서버를 자동으로 생성해주는 프레임워크
+ * A framework that automatically generates an MCP server from widget and schema definitions
  */
 
 export { McpWidgetServer, createMcpWidgetServer } from "./widget-server.js";

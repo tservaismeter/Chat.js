@@ -1,12 +1,12 @@
-# Widget Description 가이드
+# Widget Description Guide
 
-## 📖 개요
+## 📖 Overview
 
-`widgetDescription`은 OpenAI Apps SDK에서 **모델이 렌더링된 위젯을 이해**하도록 돕는 메타데이터입니다. 이를 통해 모델은 사용자에게 이미 보여진 정보를 중복해서 설명하지 않고, 더 자연스러운 대화를 이어갈 수 있습니다.
+`widgetDescription` is metadata in the OpenAI Apps SDK that helps **the model understand the rendered widget**. This allows the model to avoid redundantly explaining information already shown to the user and maintain more natural conversations.
 
-## 🎯 왜 필요한가?
+## 🎯 Why is it needed?
 
-### Before (widgetDescription 없이)
+### Before (without widgetDescription)
 ```
 User: Show me pizza places
 Assistant: Here's a map of pizza places! 🗺️
@@ -17,20 +17,20 @@ Let me list them for you:
 3. Mario's Pizza - Located at 789 Elm St
 ...
 ```
-❌ **문제**: 지도에 이미 모든 정보가 표시되는데 텍스트로 또 반복
+❌ **Problem**: The map already shows all information, but it's repeated in text
 
-### After (widgetDescription 사용)
+### After (with widgetDescription)
 ```
 User: Show me pizza places
 Assistant: Here's a map of pizza places! 🗺️
 
 You can click on the markers to see details about each location.
 ```
-✅ **개선**: 위젯이 무엇을 보여주는지 모델이 이해하고, 간단한 안내만 제공
+✅ **Improvement**: The model understands what the widget shows and only provides simple guidance
 
-## 📝 작성 방법
+## 📝 How to Write
 
-### 1. 좋은 widgetDescription
+### 1. Good widgetDescription
 
 ```typescript
 {
@@ -42,79 +42,79 @@ You can click on the markers to see details about each location.
 }
 ```
 
-**특징**:
-- ✅ 위젯이 **무엇을 보여주는지** 명확히 설명
-- ✅ 어떤 **데이터가 표시되는지** 구체적으로 기술
-- ✅ 사용자가 **볼 수 있는 정보**를 명시
+**Characteristics**:
+- ✅ Clearly explains **what the widget shows**
+- ✅ Specifically describes **what data is displayed**
+- ✅ Specifies **information the user can see**
 
-### 2. 나쁜 widgetDescription
+### 2. Bad widgetDescription
 
 ```typescript
-// ❌ 너무 짧음
+// ❌ Too short
 widgetDescription: "Shows a map"
 
-// ❌ 모델 행동을 조종하려 함
+// ❌ Tries to control model behavior
 widgetDescription: "Displays a map. Don't list the locations again."
 
-// ❌ 위젯과 관련 없는 정보
+// ❌ Information unrelated to the widget
 widgetDescription: "This is a great pizza finder tool built with React."
 ```
 
-## 📋 템플릿
+## 📋 Templates
 
-### 지도 위젯
+### Map Widget
 ```typescript
-widgetDescription: "Renders an interactive map displaying [데이터 타입] with [표시되는 정보]. Users can interact with markers to see [상세 정보]."
+widgetDescription: "Renders an interactive map displaying [data type] with [displayed information]. Users can interact with markers to see [detailed information]."
 ```
 
-**예시**:
+**Example**:
 ```typescript
 widgetDescription: "Renders an interactive map displaying restaurant locations with names, ratings, and addresses. Users can interact with markers to see detailed information about each restaurant."
 ```
 
-### 캐러셀 위젯
+### Carousel Widget
 ```typescript
-widgetDescription: "Displays a horizontally scrollable carousel showing [데이터 타입] with [표시 항목]. Each item shows [정보 리스트]."
+widgetDescription: "Displays a horizontally scrollable carousel showing [data type] with [display items]. Each item shows [information list]."
 ```
 
-**예시**:
+**Example**:
 ```typescript
 widgetDescription: "Displays a horizontally scrollable carousel showing product listings with images, prices, and ratings. Each item shows the product name, current price, and customer rating."
 ```
 
-### 리스트 위젯
+### List Widget
 ```typescript
-widgetDescription: "Presents a vertical list of [데이터 타입] showing [표시 필드]. Each entry includes [정보 리스트]."
+widgetDescription: "Presents a vertical list of [data type] showing [display fields]. Each entry includes [information list]."
 ```
 
-**예시**:
+**Example**:
 ```typescript
 widgetDescription: "Presents a vertical list of tasks showing status, assignee, and due date. Each entry includes a checkbox for completion and a link to detailed view."
 ```
 
-### 차트/그래프 위젯
+### Chart/Graph Widget
 ```typescript
-widgetDescription: "Visualizes [데이터 타입] as a [차트 종류] displaying [축 정보]. Shows [표시되는 인사이트]."
+widgetDescription: "Visualizes [data type] as a [chart type] displaying [axis information]. Shows [displayed insights]."
 ```
 
-**예시**:
+**Example**:
 ```typescript
 widgetDescription: "Visualizes sales data as a line chart displaying revenue over time. Shows monthly trends, peaks, and comparison with previous year."
 ```
 
-### 폼 위젯
+### Form Widget
 ```typescript
-widgetDescription: "Provides an interactive form for [목적]. Includes input fields for [필드 리스트] and allows users to [가능한 액션]."
+widgetDescription: "Provides an interactive form for [purpose]. Includes input fields for [field list] and allows users to [possible actions]."
 ```
 
-**예시**:
+**Example**:
 ```typescript
 widgetDescription: "Provides an interactive form for creating a new task. Includes input fields for title, description, assignee, and due date, and allows users to save or cancel."
 ```
 
-## 🎨 실제 예시
+## 🎨 Real Examples
 
-### 예시 1: Todo 리스트
+### Example 1: Todo List
 ```typescript
 {
   id: "todo-list",
@@ -125,7 +125,7 @@ widgetDescription: "Provides an interactive form for creating a new task. Includ
 }
 ```
 
-### 예시 2: 날씨 대시보드
+### Example 2: Weather Dashboard
 ```typescript
 {
   id: "weather-dashboard",
@@ -136,7 +136,7 @@ widgetDescription: "Provides an interactive form for creating a new task. Includ
 }
 ```
 
-### 예시 3: 파일 브라우저
+### Example 3: File Browser
 ```typescript
 {
   id: "file-browser",
@@ -147,62 +147,61 @@ widgetDescription: "Provides an interactive form for creating a new task. Includ
 }
 ```
 
-## ⚠️ 주의사항
+## ⚠️ Warnings
 
-### 1. 모델 행동을 직접 지시하지 마세요
+### 1. Don't directly instruct model behavior
 ```typescript
-// ❌ 나쁨
+// ❌ Bad
 widgetDescription: "Shows a map. You should not repeat the location names."
 
-// ✅ 좋음
+// ✅ Good
 widgetDescription: "Renders a map displaying location names and addresses for all listed places."
 ```
 
-### 2. 위젯의 시각적 측면만 설명하세요
+### 2. Only describe the widget's visual aspects
 ```typescript
-// ❌ 나쁨
+// ❌ Bad
 widgetDescription: "This widget was built using React and Leaflet. It queries our API."
 
-// ✅ 좋음
+// ✅ Good
 widgetDescription: "Renders an interactive map with location markers and info popups."
 ```
 
-### 3. 너무 길게 쓰지 마세요
+### 3. Don't write too long
 ```typescript
-// ❌ 나쁨 (250단어...)
+// ❌ Bad (250 words...)
 widgetDescription: "This is an amazing widget that shows you all the pizza places in your area. It has been carefully designed with user experience in mind and includes..."
 
-// ✅ 좋음 (2-3문장)
+// ✅ Good (2-3 sentences)
 widgetDescription: "Renders an interactive map showing pizza places with ratings and locations. Users can click markers to see detailed information."
 ```
 
-## 📊 테스트 방법
+## 📊 Testing Method
 
-위젯을 배포한 후:
+After deploying the widget:
 
-1. **위젯을 렌더링하는 대화를 시작하세요**
-2. **모델의 응답을 관찰하세요**:
-   - 위젯에 이미 표시된 정보를 반복하나요?
-   - 간결하고 자연스러운 안내를 제공하나요?
-3. **필요시 widgetDescription을 조정하세요**
+1. **Start a conversation that renders the widget**
+2. **Observe the model's response**:
+   - Does it repeat information already shown in the widget?
+   - Does it provide concise and natural guidance?
+3. **Adjust widgetDescription if needed**
 
-## 🔗 참고 자료
+## 🔗 References
 
 - [OpenAI Apps SDK - Component Descriptions](https://developers.openai.com/apps-sdk/build/mcp-server#add-component-descriptions)
 - [OpenAI Apps SDK - Design Guidelines](https://developers.openai.com/apps-sdk/core-concepts/design-guidelines)
 
-## 💡 빠른 체크리스트
+## 💡 Quick Checklist
 
-widgetDescription을 작성할 때:
+When writing widgetDescription:
 
-- [ ] 위젯이 **무엇을 보여주는지** 명확히 설명했나요?
-- [ ] **표시되는 데이터 필드**를 구체적으로 나열했나요?
-- [ ] **사용자 인터랙션**을 언급했나요? (클릭, 스크롤 등)
-- [ ] 2-3문장으로 **간결하게** 작성했나요?
-- [ ] 모델 행동을 지시하는 내용은 **없나요**?
-- [ ] 기술적인 구현 세부사항은 **제외**했나요?
+- [ ] Does it clearly explain **what the widget shows**?
+- [ ] Does it specifically list **displayed data fields**?
+- [ ] Does it mention **user interactions** (click, scroll, etc.)?
+- [ ] Is it written **concisely** in 2-3 sentences?
+- [ ] Does it **not** contain instructions for model behavior?
+- [ ] Have you **excluded** technical implementation details?
 
 ---
 
-이 가이드를 따라 작성하면 모델이 위젯을 더 잘 이해하고, 사용자에게 더 자연스러운 대화 경험을 제공할 수 있습니다! 🎉
-
+Following this guide will help the model better understand widgets and provide a more natural conversation experience for users! 🎉

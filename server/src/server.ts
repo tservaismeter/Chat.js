@@ -1,14 +1,14 @@
 /**
- * Pizzaz MCP Server - 프레임워크 사용 예제
+ * Pizzaz MCP Server - Framework Usage Example
  * 
- * 이제 위젯과 스키마만 정의하면 됩니다!
- * MCP 리소스 생성과 서버 생성은 프레임워크가 자동으로 처리합니다.
+ * Now you only need to define widgets and schemas!
+ * The framework automatically handles MCP resource creation and server setup.
  */
 
 import { z } from "zod";
 import { createMcpWidgetServer } from "./framework/index.js";
 
-// 1단계: 위젯 정의만 하면 끝!
+// Step 1: Just define your widgets!
 const widgets = [
   {
     id: "pizza-map",
@@ -125,10 +125,29 @@ const widgets = [
       invoked: "Kaka haha displayed!",
       widgetDescription: "Renders a simple greeting message 'kaka haha!' in large bold text on a white background."
     }
+  },
+  {
+    id: "wowwow",
+    title: "Show Wow Wow",
+    description: "Display a wow message",
+    htmlSrc: "http://localhost:4444/wowwow-2d2b.js",
+    rootElement: "wowwow-root",
+    schema: z.object({
+      intensity: z.number().optional().describe("Intensity level (not used yet)")
+    }),
+    handler: async (args: { intensity?: number }) => ({
+      text: "Wow Wow displayed!",
+      data: { intensity: args.intensity }
+    }),
+    meta: {
+      invoking: "Preparing wow wow...",
+      invoked: "Wow Wow displayed!",
+      widgetDescription: "Renders a bold 'Wow Wow' message in large text on a white background."
+    }
   }
 ];
 
-// 2단계: 서버 생성 및 시작 (프레임워크가 모든 것을 자동 처리!)
+// Step 2: Create and start the server (framework handles everything automatically!)
 const server = createMcpWidgetServer({
   name: "pizzaz-node",
   version: "0.1.0",

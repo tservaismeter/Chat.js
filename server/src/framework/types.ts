@@ -1,81 +1,81 @@
 import type { z } from "zod";
 
 /**
- * 위젯 정의 타입
- * 사용자가 위젯을 정의할 때 사용하는 핵심 타입
+ * Widget Definition Type
+ * Core type used when defining widgets
  */
 export type WidgetDefinition<TSchema extends z.ZodType = z.ZodType> = {
-  /** 위젯의 고유 ID (tool name으로 사용됨) */
+  /** Unique widget ID (used as tool name) */
   id: string;
   
-  /** 위젯의 표시 이름 */
+  /** Widget display name */
   title: string;
   
-  /** 위젯에 대한 설명 (선택사항) */
+  /** Widget description (optional) */
   description?: string;
   
-  /** 위젯의 JavaScript 파일 URL */
+  /** Widget JavaScript file URL */
   htmlSrc: string;
   
-  /** 위젯의 CSS 파일 URL (선택사항) */
+  /** Widget CSS file URL (optional) */
   cssSrc?: string;
   
-  /** 위젯이 렌더링될 루트 엘리먼트 ID */
+  /** Root element ID where the widget will be rendered */
   rootElement: string;
   
-  /** 입력 파라미터 스키마 (Zod 스키마) */
+  /** Input parameter schema (Zod schema) */
   schema: TSchema;
   
-  /** 위젯 호출 시 실행될 핸들러 함수 */
+  /** Handler function to execute when widget is called */
   handler: (args: z.infer<TSchema>) => Promise<WidgetHandlerResult>;
   
-  /** 추가 메타데이터 (선택사항) */
+  /** Additional metadata (optional) */
   meta?: {
-    /** 위젯 로딩 중 메시지 */
+    /** Widget loading message */
     invoking?: string;
-    /** 위젯 로드 완료 메시지 */
+    /** Widget load complete message */
     invoked?: string;
-    /** 위젯 설명 - 모델이 위젯의 역할을 이해하도록 도움 */
+    /** Widget description - helps the model understand the widget's role */
     widgetDescription?: string;
   };
 };
 
 /**
- * 위젯 핸들러가 반환하는 결과 타입
+ * Widget Handler Result Type
  */
 export type WidgetHandlerResult = {
-  /** 사용자에게 보여질 텍스트 응답 */
+  /** Text response to show to the user */
   text: string;
   
-  /** 구조화된 데이터 (선택사항) */
+  /** Structured data (optional) */
   data?: Record<string, any>;
 };
 
 /**
- * MCP 위젯 서버 설정
+ * MCP Widget Server Configuration
  */
 export type ServerConfig = {
-  /** 서버 이름 */
+  /** Server name */
   name: string;
   
-  /** 서버 버전 */
+  /** Server version */
   version: string;
   
-  /** 위젯 정의 배열 */
+  /** Widget definition array */
   widgets: WidgetDefinition[];
   
-  /** HTTP 서버 포트 (기본값: 8000) */
+  /** HTTP server port (default: 8000) */
   port?: number;
   
-  /** SSE 엔드포인트 경로 (기본값: "/mcp") */
+  /** SSE endpoint path (default: "/mcp") */
   ssePath?: string;
   
-  /** POST 메시지 엔드포인트 경로 (기본값: "/mcp/messages") */
+  /** POST message endpoint path (default: "/mcp/messages") */
   postPath?: string;
 };
 
 /**
- * 내부적으로 사용되는 위젯 메타데이터
+ * Widget metadata used internally
  */
 export type WidgetMeta = {
   id: string;
