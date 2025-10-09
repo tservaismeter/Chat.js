@@ -1,6 +1,6 @@
-# MCP Widget Framework
+# Chat.js : The chatgpt apps framework
 
-A framework for building OpenAI MCP servers. Define widgets and schemas - the framework handles MCP resources, tools, and handlers automatically.
+A framework for building apps for ChatGPT. Define widgets and schemas - the framework handles MCP resources, tools, and handlers automatically.
 
 > **For AI Coding Tools**: If you're using an AI coding tool like Cursor, Claude Code, or Codex, try prompting:
 > 
