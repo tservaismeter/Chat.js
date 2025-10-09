@@ -105,19 +105,6 @@ const widgets: PizzazWidget[] = [
 <script type="module" src="http://localhost:4444/pizzaz-video-2d2b.js"></script>
     `.trim(),
     responseText: "Rendered a pizza video!"
-  },
-  {
-    id: "kaka-wow",
-    title: "Show Kaka Wow",
-    templateUri: "ui://widget/kaka-wow.html",
-    invoking: "Loading kaka wow",
-    invoked: "Kaka wow loaded!",
-    html: `
-<div id="kaka-wow-root"></div>
-<link rel="stylesheet" href="http://localhost:4444/kaka-wow-2d2b.css">
-<script type="module" src="http://localhost:4444/kaka-wow-2d2b.js"></script>
-    `.trim(),
-    responseText: "Kaka wow!"
   }
 ];
 
@@ -186,12 +173,6 @@ const widgetSchemas = {
     },
     required: ["pizzaTopping"],
     additionalProperties: false
-  },
-  "kaka-wow": {
-    type: "object",
-    properties: {},
-    required: [],
-    additionalProperties: false
   }
 } as const;
 
@@ -199,8 +180,6 @@ const widgetSchemas = {
 const pizzaInputParser = z.object({
   pizzaTopping: z.string()
 });
-
-const kakaWowInputParser = z.object({});
 
 // MCP 타입들 생성
 const tools: Tool[] = widgets.map((widget) => ({
@@ -279,35 +258,20 @@ function createPizzazServer(): Server {
       throw new Error(`Unknown tool: ${request.params.name}`);
     }
 
-    // 각 위젯별로 다른 파서 사용
-    if (widget.id === "kaka-wow") {
-      const args = kakaWowInputParser.parse(request.params.arguments ?? {});
-      return {
-        content: [
-          {
-            type: "text",
-            text: widget.responseText
-          }
-        ],
-        structuredContent: {},
-        _meta: widgetMeta(widget)
-      };
-    } else {
-      // 피자 관련 위젯들
-      const args = pizzaInputParser.parse(request.params.arguments ?? {});
-      return {
-        content: [
-          {
-            type: "text",
-            text: widget.responseText
-          }
-        ],
-        structuredContent: {
-          pizzaTopping: args.pizzaTopping
-        },
-        _meta: widgetMeta(widget)
-      };
-    }
+    // 피자 관련 위젯들
+    const args = pizzaInputParser.parse(request.params.arguments ?? {});
+    return {
+      content: [
+        {
+          type: "text",
+          text: widget.responseText
+        }
+      ],
+      structuredContent: {
+        pizzaTopping: args.pizzaTopping
+      },
+      _meta: widgetMeta(widget)
+    };
   });
 
   return server;
