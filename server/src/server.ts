@@ -81,40 +81,6 @@ const widgets = [
       invoking: "Hand-tossing a list",
       invoked: "Served a fresh list"
     }
-  },
-  {
-    component: "kaka-haha",  // → src/components/kaka-haha/
-    title: "Show Kaka Haha",
-    description: "Display a simple greeting message",
-    schema: z.object({
-      message: z.string().optional().describe("Optional message to display (not used yet)")
-    }),
-    handler: async (args: { message?: string }) => ({
-      text: "Displayed kaka haha message!",
-      data: { message: args.message }
-    }),
-    meta: {
-      invoking: "Preparing kaka haha...",
-      invoked: "Kaka haha displayed!",
-      widgetDescription: "Renders a simple greeting message 'kaka haha!' in large bold text on a white background."
-    }
-  },
-  {
-    component: "hoho-haha",  // → src/components/hoho-haha/
-    title: "Show Hoho Haha",
-    description: "Display the hoho haha component",
-    schema: z.object({
-      message: z.string().optional().describe("Optional message to display")
-    }),
-    handler: async (args: { message?: string }) => ({
-      text: "Hoho haha component rendered!",
-      data: { message: args.message }
-    }),
-    meta: {
-      invoking: "Loading hoho haha...",
-      invoked: "Hoho haha displayed!",
-      widgetDescription: "Renders a beautiful gradient component with the hoho haha title and emoji. Perfect for testing and demonstration purposes."
-    }
   }
 ];
 
