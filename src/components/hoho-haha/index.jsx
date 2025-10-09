@@ -2,10 +2,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 /**
- * Last Test 위젯
+ * Hoho Haha 위젯
  * 최종 테스트용 컴포넌트
  */
-function LastTest() {
+function HohoHaha() {
   return (
     <div style={{
       width: '100%',
@@ -28,7 +28,7 @@ function LastTest() {
         fontFamily: 'system-ui, -apple-system, sans-serif',
         textShadow: '0 2px 10px rgba(0,0,0,0.2)'
       }}>
-        Last Test
+        Hoho Haha
       </h1>
       <p style={{
         color: 'rgba(255,255,255,0.9)',
@@ -43,9 +43,9 @@ function LastTest() {
 }
 
 // 마운트
-const rootElement = document.getElementById('last-test-root');
+const rootElement = document.getElementById('hoho-haha-root');
 if (rootElement) {
   const root = createRoot(rootElement);
-  root.render(<LastTest />);
+  root.render(<HohoHaha />);
 }
 

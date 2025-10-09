@@ -100,20 +100,20 @@ const widgets = [
     }
   },
   {
-    component: "last-test",  // → src/components/last-test/
-    title: "Show Last Test",
-    description: "Display the final test component",
+    component: "hoho-haha",  // → src/components/hoho-haha/
+    title: "Show Hoho Haha",
+    description: "Display the hoho haha component",
     schema: z.object({
       message: z.string().optional().describe("Optional message to display")
     }),
     handler: async (args: { message?: string }) => ({
-      text: "Last test component rendered!",
+      text: "Hoho haha component rendered!",
       data: { message: args.message }
     }),
     meta: {
-      invoking: "Loading last test...",
-      invoked: "Last test displayed!",
-      widgetDescription: "Renders a beautiful gradient test component with a title and emoji. Perfect for final testing and demonstration purposes."
+      invoking: "Loading hoho haha...",
+      invoked: "Hoho haha displayed!",
+      widgetDescription: "Renders a beautiful gradient component with the hoho haha title and emoji. Perfect for testing and demonstration purposes."
     }
   }
 ];
