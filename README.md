@@ -2,6 +2,8 @@
 
 The ChatGPT apps framework. Define widgets and schemas - the framework handles MCP resources, tools, and handlers automatically.
 
+> **Note**: This project is a fork of [OpenAI's Apps SDK Examples](https://github.com/openai/openai-apps-sdk-examples), enhanced with an automated framework to reduce boilerplate and simplify widget creation.
+
 > **For AI Coding Tools**: If you're using an AI coding tool like Cursor, Claude Code, or Codex, try prompting:
 > 
 > _"Read the `/docs/AGENTS.md` and help me use this chatjs framework."_
@@ -169,6 +171,19 @@ chatjs/
   };
 }
 ```
+
+## Acknowledgments
+
+This project is built upon [OpenAI's Apps SDK Examples](https://github.com/openai/openai-apps-sdk-examples), which provides the foundation for creating ChatGPT apps using the Model Context Protocol (MCP). 
+
+**Key enhancements in Chat.js:**
+- Automated MCP framework that eliminates 300+ lines of boilerplate
+- Convention-based widget registration
+- Automatic asset URL generation with version syncing
+- Simplified API for creating widgets
+- npm initializer (`create-chatgpt-app`) for instant project setup
+
+Credits to OpenAI for the original Apps SDK implementation and example widgets.
 
 ## License
 
