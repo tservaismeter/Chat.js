@@ -19,7 +19,7 @@ function App() {
           ></div>
           <div>
             <div className="text-base sm:text-xl font-medium">
-              Chat.js App test
+              framework App test
             </div>
             <div className="text-sm text-black/60">
               A test app for the Chat.js App

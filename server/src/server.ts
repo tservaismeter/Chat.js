@@ -1,392 +1,120 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { URL } from "node:url";
+/**
+ * Pizzaz MCP Server - 프레임워크 사용 예제
+ * 
+ * 이제 위젯과 스키마만 정의하면 됩니다!
+ * MCP 리소스 생성과 서버 생성은 프레임워크가 자동으로 처리합니다.
+ */
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import {
-  CallToolRequestSchema,
-  ListResourceTemplatesRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  ReadResourceRequestSchema,
-  type CallToolRequest,
-  type ListResourceTemplatesRequest,
-  type ListResourcesRequest,
-  type ListToolsRequest,
-  type ReadResourceRequest,
-  type Resource,
-  type ResourceTemplate,
-  type Tool
-} from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { createMcpWidgetServer } from "./framework/index.js";
 
-type PizzazWidget = {
-  id: string;
-  title: string;
-  templateUri: string;
-  invoking: string;
-  invoked: string;
-  html: string;
-  responseText: string;
-};
-
-function widgetMeta(widget: PizzazWidget) {
-  return {
-    "openai/outputTemplate": widget.templateUri,
-    "openai/toolInvocation/invoking": widget.invoking,
-    "openai/toolInvocation/invoked": widget.invoked,
-    "openai/widgetAccessible": true,
-    "openai/resultCanProduceWidget": true
-  } as const;
-}
-
-const widgets: PizzazWidget[] = [
+// 1단계: 위젯 정의만 하면 끝!
+const widgets = [
   {
     id: "pizza-map",
     title: "Show Pizza Map",
-    templateUri: "ui://widget/pizza-map.html",
-    invoking: "Hand-tossing a map",
-    invoked: "Served a fresh map",
-    html: `
-<div id="pizzaz-root"></div>
-<link rel="stylesheet" href="http://localhost:4444/pizzaz-2d2b.css">
-<script type="module" src="http://localhost:4444/pizzaz-2d2b.js"></script>
-    `.trim(),
-    responseText: "Rendered a pizza map!"
+    description: "Display an interactive pizza map",
+    htmlSrc: "http://localhost:4444/pizzaz-2d2b.js",
+    cssSrc: "http://localhost:4444/pizzaz-2d2b.css",
+    rootElement: "pizzaz-root",
+    schema: z.object({
+      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza map.")
+    }),
+    handler: async (args: { pizzaTopping: string }) => ({
+      text: "Rendered a pizza map!",
+      data: { pizzaTopping: args.pizzaTopping }
+    }),
+    meta: {
+      invoking: "Hand-tossing a map",
+      invoked: "Served a fresh map",
+      widgetDescription: "Renders an interactive map showing pizza places with markers and location details. Displays information about the selected pizza topping."
+    }
   },
   {
     id: "pizza-carousel",
     title: "Show Pizza Carousel",
-    templateUri: "ui://widget/pizza-carousel.html",
-    invoking: "Carousel some spots",
-    invoked: "Served a fresh carousel",
-    html: `
-<div id="pizzaz-carousel-root"></div>
-<link rel="stylesheet" href="http://localhost:4444/pizzaz-carousel-2d2b.css">
-<script type="module" src="http://localhost:4444/pizzaz-carousel-2d2b.js"></script>
-    `.trim(),
-    responseText: "Rendered a pizza carousel!"
+    description: "Display a carousel of pizza places",
+    htmlSrc: "http://localhost:4444/pizzaz-carousel-2d2b.js",
+    cssSrc: "http://localhost:4444/pizzaz-carousel-2d2b.css",
+    rootElement: "pizzaz-carousel-root",
+    schema: z.object({
+      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza carousel.")
+    }),
+    handler: async (args: { pizzaTopping: string }) => ({
+      text: "Rendered a pizza carousel!",
+      data: { pizzaTopping: args.pizzaTopping }
+    }),
+    meta: {
+      invoking: "Carousel some spots",
+      invoked: "Served a fresh carousel",
+      widgetDescription: "Renders a horizontally scrollable carousel displaying pizza places with images and details. Shows multiple locations at once for easy browsing."
+    }
   },
   {
     id: "pizza-albums",
     title: "Show Pizza Album",
-    templateUri: "ui://widget/pizza-albums.html",
-    invoking: "Hand-tossing an album",
-    invoked: "Served a fresh album",
-    html: `
-<div id="pizzaz-albums-root"></div>
-<link rel="stylesheet" href="http://localhost:4444/pizzaz-albums-2d2b.css">
-<script type="module" src="http://localhost:4444/pizzaz-albums-2d2b.js"></script>
-    `.trim(),
-    responseText: "Rendered a pizza album!"
+    description: "Display a photo album of pizzas",
+    htmlSrc: "http://localhost:4444/pizzaz-albums-2d2b.js",
+    cssSrc: "http://localhost:4444/pizzaz-albums-2d2b.css",
+    rootElement: "pizzaz-albums-root",
+    schema: z.object({
+      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza albums.")
+    }),
+    handler: async (args: { pizzaTopping: string }) => ({
+      text: "Rendered a pizza album!",
+      data: { pizzaTopping: args.pizzaTopping }
+    }),
+    meta: {
+      invoking: "Hand-tossing an album",
+      invoked: "Served a fresh album"
+    }
   },
   {
     id: "pizza-list",
     title: "Show Pizza List",
-    templateUri: "ui://widget/pizza-list.html",
-    invoking: "Hand-tossing a list",
-    invoked: "Served a fresh list",
-    html: `
-<div id="pizzaz-list-root"></div>
-<link rel="stylesheet" href="http://localhost:4444/pizzaz-list-2d2b.css">
-<script type="module" src="http://localhost:4444/pizzaz-list-2d2b.js"></script>
-    `.trim(),
-    responseText: "Rendered a pizza list!"
+    description: "Display a list of pizza places",
+    htmlSrc: "http://localhost:4444/pizzaz-list-2d2b.js",
+    cssSrc: "http://localhost:4444/pizzaz-list-2d2b.css",
+    rootElement: "pizzaz-list-root",
+    schema: z.object({
+      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza list.")
+    }),
+    handler: async (args: { pizzaTopping: string }) => ({
+      text: "Rendered a pizza list!",
+      data: { pizzaTopping: args.pizzaTopping }
+    }),
+    meta: {
+      invoking: "Hand-tossing a list",
+      invoked: "Served a fresh list"
+    }
   },
   {
     id: "pizza-video",
     title: "Show Pizza Video",
-    templateUri: "ui://widget/pizza-video.html",
-    invoking: "Hand-tossing a video",
-    invoked: "Served a fresh video",
-    html: `
-<div id="pizzaz-video-root"></div>
-<link rel="stylesheet" href="http://localhost:4444/pizzaz-video-2d2b.css">
-<script type="module" src="http://localhost:4444/pizzaz-video-2d2b.js"></script>
-    `.trim(),
-    responseText: "Rendered a pizza video!"
+    description: "Display a pizza video player",
+    htmlSrc: "http://localhost:4444/pizzaz-video-2d2b.js",
+    cssSrc: "http://localhost:4444/pizzaz-video-2d2b.css",
+    rootElement: "pizzaz-video-root",
+    schema: z.object({
+      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza video.")
+    }),
+    handler: async (args: { pizzaTopping: string }) => ({
+      text: "Rendered a pizza video!",
+      data: { pizzaTopping: args.pizzaTopping }
+    }),
+    meta: {
+      invoking: "Hand-tossing a video",
+      invoked: "Served a fresh video"
+    }
   }
 ];
 
-// 편리한 조회를 위한 Map
-const widgetsById = new Map<string, PizzazWidget>(
-  widgets.map(w => [w.id, w])
-);
-
-const widgetsByUri = new Map<string, PizzazWidget>(
-  widgets.map(w => [w.templateUri, w])
-);
-
-// 각 위젯별 입력 스키마
-const widgetSchemas = {
-  "pizza-map": {
-    type: "object",
-    properties: {
-      pizzaTopping: {
-        type: "string",
-        description: "Topping to mention when rendering the pizza map."
-      }
-    },
-    required: ["pizzaTopping"],
-    additionalProperties: false
-  },
-  "pizza-carousel": {
-    type: "object",
-    properties: {
-      pizzaTopping: {
-        type: "string",
-        description: "Topping to mention when rendering the pizza carousel."
-      }
-    },
-    required: ["pizzaTopping"],
-    additionalProperties: false
-  },
-  "pizza-albums": {
-    type: "object",
-    properties: {
-      pizzaTopping: {
-        type: "string",
-        description: "Topping to mention when rendering the pizza albums."
-      }
-    },
-    required: ["pizzaTopping"],
-    additionalProperties: false
-  },
-  "pizza-list": {
-    type: "object",
-    properties: {
-      pizzaTopping: {
-        type: "string",
-        description: "Topping to mention when rendering the pizza list."
-      }
-    },
-    required: ["pizzaTopping"],
-    additionalProperties: false
-  },
-  "pizza-video": {
-    type: "object",
-    properties: {
-      pizzaTopping: {
-        type: "string",
-        description: "Topping to mention when rendering the pizza video."
-      }
-    },
-    required: ["pizzaTopping"],
-    additionalProperties: false
-  }
-} as const;
-
-// 각 위젯별 파서
-const pizzaInputParser = z.object({
-  pizzaTopping: z.string()
+// 2단계: 서버 생성 및 시작 (프레임워크가 모든 것을 자동 처리!)
+const server = createMcpWidgetServer({
+  name: "pizzaz-node",
+  version: "0.1.0",
+  widgets,
+  port: Number(process.env.PORT ?? 8000)
 });
 
-// MCP 타입들 생성
-const tools: Tool[] = widgets.map((widget) => ({
-  name: widget.id,
-  description: widget.title,
-  inputSchema: widgetSchemas[widget.id as keyof typeof widgetSchemas],
-  title: widget.title,
-  _meta: widgetMeta(widget)
-}));
-
-const resources: Resource[] = widgets.map((widget) => ({
-  uri: widget.templateUri,
-  name: widget.title,
-  description: `${widget.title} widget markup`,
-  mimeType: "text/html+skybridge",
-  _meta: widgetMeta(widget)
-}));
-
-const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
-  uriTemplate: widget.templateUri,
-  name: widget.title,
-  description: `${widget.title} widget markup`,
-  mimeType: "text/html+skybridge",
-  _meta: widgetMeta(widget)
-}));
-
-function createPizzazServer(): Server {
-  const server = new Server(
-    {
-      name: "pizzaz-node",
-      version: "0.1.0"
-    },
-    {
-      capabilities: {
-        resources: {},
-        tools: {}
-      }
-    }
-  );
-
-  server.setRequestHandler(ListResourcesRequestSchema, async (_request: ListResourcesRequest) => ({
-    resources
-  }));
-
-  server.setRequestHandler(ReadResourceRequestSchema, async (request: ReadResourceRequest) => {
-    const widget = widgetsByUri.get(request.params.uri);
-
-    if (!widget) {
-      throw new Error(`Unknown resource: ${request.params.uri}`);
-    }
-
-    return {
-      contents: [
-        {
-          uri: widget.templateUri,
-          mimeType: "text/html+skybridge",
-          text: widget.html,
-          _meta: widgetMeta(widget)
-        }
-      ]
-    };
-  });
-
-  server.setRequestHandler(ListResourceTemplatesRequestSchema, async (_request: ListResourceTemplatesRequest) => ({
-    resourceTemplates
-  }));
-
-  server.setRequestHandler(ListToolsRequestSchema, async (_request: ListToolsRequest) => ({
-    tools
-  }));
-
-  server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
-    const widget = widgetsById.get(request.params.name);
-
-    if (!widget) {
-      throw new Error(`Unknown tool: ${request.params.name}`);
-    }
-
-    // 피자 관련 위젯들
-    const args = pizzaInputParser.parse(request.params.arguments ?? {});
-    return {
-      content: [
-        {
-          type: "text",
-          text: widget.responseText
-        }
-      ],
-      structuredContent: {
-        pizzaTopping: args.pizzaTopping
-      },
-      _meta: widgetMeta(widget)
-    };
-  });
-
-  return server;
-}
-
-type SessionRecord = {
-  server: Server;
-  transport: SSEServerTransport;
-};
-
-const sessions = new Map<string, SessionRecord>();
-
-const ssePath = "/mcp";
-const postPath = "/mcp/messages";
-
-async function handleSseRequest(res: ServerResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  const server = createPizzazServer();
-  const transport = new SSEServerTransport(postPath, res);
-  const sessionId = transport.sessionId;
-
-  sessions.set(sessionId, { server, transport });
-
-  transport.onclose = async () => {
-    sessions.delete(sessionId);
-    await server.close();
-  };
-
-  transport.onerror = (error) => {
-    console.error("SSE transport error", error);
-  };
-
-  try {
-    await server.connect(transport);
-  } catch (error) {
-    sessions.delete(sessionId);
-    console.error("Failed to start SSE session", error);
-    if (!res.headersSent) {
-      res.writeHead(500).end("Failed to establish SSE connection");
-    }
-  }
-}
-
-async function handlePostMessage(
-  req: IncomingMessage,
-  res: ServerResponse,
-  url: URL
-) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "content-type");
-  const sessionId = url.searchParams.get("sessionId");
-
-  if (!sessionId) {
-    res.writeHead(400).end("Missing sessionId query parameter");
-    return;
-  }
-
-  const session = sessions.get(sessionId);
-
-  if (!session) {
-    res.writeHead(404).end("Unknown session");
-    return;
-  }
-
-  try {
-    await session.transport.handlePostMessage(req, res);
-  } catch (error) {
-    console.error("Failed to process message", error);
-    if (!res.headersSent) {
-      res.writeHead(500).end("Failed to process message");
-    }
-  }
-}
-
-const portEnv = Number(process.env.PORT ?? 8000);
-const port = Number.isFinite(portEnv) ? portEnv : 8000;
-
-const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-  if (!req.url) {
-    res.writeHead(400).end("Missing URL");
-    return;
-  }
-
-  const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
-
-  if (req.method === "OPTIONS" && (url.pathname === ssePath || url.pathname === postPath)) {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "content-type"
-    });
-    res.end();
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === ssePath) {
-    await handleSseRequest(res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === postPath) {
-    await handlePostMessage(req, res, url);
-    return;
-  }
-
-  res.writeHead(404).end("Not Found");
-});
-
-httpServer.on("clientError", (err: Error, socket) => {
-  console.error("HTTP client error", err);
-  socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
-});
-
-httpServer.listen(port, () => {
-  console.log(`Pizzaz MCP server listening on http://localhost:${port}`);
-  console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
-  console.log(`  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`);
-});
+server.start();
