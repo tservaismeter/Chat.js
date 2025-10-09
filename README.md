@@ -43,24 +43,18 @@ pnpm start
 ```bash
 ngrok http 8000
 ```
+From the ngrok command, You will get a public URL.
+
+For example: `https://<custom_endpoint>.ngrok-free.app/mcp`
 
 > 💡 **Tip**: If you used `npx create-chatgpt-app`, your project already includes 6 example widgets (pizzaz map, albums, carousel, list, solar-system, and todo) ready to try!
 
 ### 4. Testing in ChatGPT
 
+
 To add these apps to ChatGPT, enable developer mode, and add your apps in **Settings > Connectors**.
 
-To add your local server without deploying it, you can use a tool like **ngrok** to expose your local server to the internet.
-
-For example, once your MCP servers are running, you can run:
-
-```bash
-ngrok http 8000
-```
-
-You will get a public URL that you can use to add your local server to ChatGPT in **Settings > Connectors**.
-
-For example: `https://<custom_endpoint>.ngrok-free.app/mcp`
+Add your local public URL from ngrok(like 'https://<custom_endpoint>.ngrok-free.app/mcp') to ChatGPT in **Settings > Connectors**.
 
 ## Adding a New Widget
 
