@@ -20,7 +20,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import type { ServerConfig, WidgetDefinition, WidgetMeta } from "./types.js";
-import { generateWidgetHtml, generateWidgetMeta, zodToJsonSchema } from "./utils.js";
+import { generateAssetHash, generateWidgetHtml, generateWidgetMeta, zodToJsonSchema } from "./utils.js";
 
 type SessionRecord = {
   server: Server;
@@ -39,12 +39,27 @@ export class McpWidgetServer {
   constructor(config: ServerConfig) {
     this.config = config;
     
+    // Generate asset hash from version (matches build-all.mts logic)
+    const assetHash = generateAssetHash(config.version);
+    const frontendUrl = config.frontendUrl ?? "http://localhost:4444";
+    
+    // Process widgets: auto-generate missing fields
+    const processedWidgets = config.widgets.map(widget => {
+      const component = widget.component;
+      return {
+        ...widget,
+        htmlSrc: widget.htmlSrc ?? `${frontendUrl}/${component}-${assetHash}.js`,
+        cssSrc: widget.cssSrc ?? `${frontendUrl}/${component}-${assetHash}.css`,
+        rootElement: widget.rootElement ?? `${component}-root`
+      };
+    });
+    
     // Pre-generate widget metadata
-    this.widgetMetas = config.widgets.map(widget => ({
-      id: widget.id,
+    this.widgetMetas = processedWidgets.map(widget => ({
+      component: widget.component,
       title: widget.title,
-      templateUri: `ui://widget/${widget.id}.html`,
-      html: generateWidgetHtml(widget.rootElement, widget.htmlSrc, widget.cssSrc),
+      templateUri: `ui://widget/${widget.component}.html`,
+      html: generateWidgetHtml(widget.rootElement!, widget.htmlSrc!, widget.cssSrc),
       definition: widget
     }));
   }
@@ -55,12 +70,12 @@ export class McpWidgetServer {
   private widgetToTool(widgetMeta: WidgetMeta): Tool {
     const widget = widgetMeta.definition;
     return {
-      name: widget.id,
+      name: widget.component,
       description: widget.description || widget.title,
       inputSchema: zodToJsonSchema(widget.schema),
       title: widget.title,
       _meta: generateWidgetMeta(
-        widget.id,
+        widget.component,
         widget.title,
         widget.meta?.invoking,
         widget.meta?.invoked,
@@ -80,7 +95,7 @@ export class McpWidgetServer {
       description: widget.description || `${widget.title} widget markup`,
       mimeType: "text/html+skybridge",
       _meta: generateWidgetMeta(
-        widget.id,
+        widget.component,
         widget.title,
         widget.meta?.invoking,
         widget.meta?.invoked,
@@ -100,7 +115,7 @@ export class McpWidgetServer {
       description: widget.description || `${widget.title} widget markup`,
       mimeType: "text/html+skybridge",
       _meta: generateWidgetMeta(
-        widget.id,
+        widget.component,
         widget.title,
         widget.meta?.invoking,
         widget.meta?.invoked,
@@ -132,7 +147,7 @@ export class McpWidgetServer {
     const resourceTemplates = this.widgetMetas.map(w => this.widgetToResourceTemplate(w));
 
     // Maps for quick lookup
-    const widgetsById = new Map(this.widgetMetas.map(w => [w.id, w]));
+    const widgetsByComponent = new Map(this.widgetMetas.map(w => [w.component, w]));
     const widgetsByUri = new Map(this.widgetMetas.map(w => [w.templateUri, w]));
 
     // ListTools handler
@@ -170,7 +185,7 @@ export class McpWidgetServer {
               mimeType: "text/html+skybridge",
               text: widgetMeta.html,
               _meta: generateWidgetMeta(
-                widget.id,
+                widget.component,
                 widget.title,
                 widget.meta?.invoking,
                 widget.meta?.invoked,
@@ -194,7 +209,7 @@ export class McpWidgetServer {
     server.setRequestHandler(
       CallToolRequestSchema,
       async (request: CallToolRequest) => {
-        const widgetMeta = widgetsById.get(request.params.name);
+        const widgetMeta = widgetsByComponent.get(request.params.name);
 
         if (!widgetMeta) {
           throw new Error(`Unknown tool: ${request.params.name}`);
@@ -217,7 +232,7 @@ export class McpWidgetServer {
           ],
           structuredContent: result.data,
           _meta: generateWidgetMeta(
-            widget.id,
+            widget.component,
             widget.title,
             widget.meta?.invoking,
             widget.meta?.invoked,
@@ -350,7 +365,7 @@ export class McpWidgetServer {
       console.log(`  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`);
       console.log(`  Registered ${this.config.widgets.length} widget(s):`);
       this.config.widgets.forEach(w => {
-        console.log(`    - ${w.id}: ${w.title}`);
+        console.log(`    - ${w.component}: ${w.title}`);
       });
     });
 

@@ -1,11 +1,12 @@
 import type { z } from "zod";
+import crypto from "node:crypto";
 
 /**
  * Convert Zod schema to JSON Schema
  * Simple implementation - can be replaced with zod-to-json-schema library if needed
  */
 export function zodToJsonSchema(schema: z.ZodType): any {
-  // Extract ZodObject's shape and convert to JSON Schema
+  // Extract shape from ZodObject and convert to JSON Schema
   const zodDef = (schema as any)._def;
   
   if (zodDef.typeName === "ZodObject") {
@@ -17,7 +18,7 @@ export function zodToJsonSchema(schema: z.ZodType): any {
       const fieldSchema = value as z.ZodType;
       const fieldDef = (fieldSchema as any)._def;
       
-      // Basic type mapping
+      // Map basic types
       let type = "string";
       let description = fieldDef.description;
       
@@ -52,12 +53,24 @@ export function zodToJsonSchema(schema: z.ZodType): any {
     };
   }
   
-  // Return object type by default
+  // Default to object type
   return {
     type: "object",
     properties: {},
     additionalProperties: true
   };
+}
+
+/**
+ * Generate asset hash from version string
+ * Uses the same logic as build-all.mts
+ */
+export function generateAssetHash(version: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(version, "utf8")
+    .digest("hex")
+    .slice(0, 4);
 }
 
 /**

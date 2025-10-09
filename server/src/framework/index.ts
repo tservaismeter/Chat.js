@@ -1,7 +1,7 @@
 /**
  * MCP Widget Server Framework
  * 
- * A framework that automatically generates an MCP server from widget and schema definitions
+ * Framework that automatically generates MCP server from widget and schema definitions
  */
 
 export { McpWidgetServer, createMcpWidgetServer } from "./widget-server.js";
@@ -13,6 +13,7 @@ export type {
 export { 
   zodToJsonSchema, 
   generateWidgetMeta, 
-  generateWidgetHtml 
+  generateWidgetHtml,
+  generateAssetHash
 } from "./utils.js";
 

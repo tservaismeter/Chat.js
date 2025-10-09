@@ -6,17 +6,20 @@
  */
 
 import { z } from "zod";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createMcpWidgetServer } from "./framework/index.js";
 
-// Step 1: Just define your widgets!
+// Auto-read version from frontend package.json
+const frontendPkgPath = resolve(import.meta.dirname, "../../package.json");
+const frontendPkg = JSON.parse(readFileSync(frontendPkgPath, "utf8"));
+
+// Step 1: Define widgets (component maps to src/components/{component}/)
 const widgets = [
   {
-    id: "pizza-map",
+    component: "pizzaz",  // → src/components/pizzaz/
     title: "Show Pizza Map",
     description: "Display an interactive pizza map",
-    htmlSrc: "http://localhost:4444/pizzaz-2d2b.js",
-    cssSrc: "http://localhost:4444/pizzaz-2d2b.css",
-    rootElement: "pizzaz-root",
     schema: z.object({
       pizzaTopping: z.string().describe("Topping to mention when rendering the pizza map.")
     }),
@@ -31,12 +34,9 @@ const widgets = [
     }
   },
   {
-    id: "pizza-carousel",
+    component: "pizzaz-carousel",  // → src/components/pizzaz-carousel/
     title: "Show Pizza Carousel",
     description: "Display a carousel of pizza places",
-    htmlSrc: "http://localhost:4444/pizzaz-carousel-2d2b.js",
-    cssSrc: "http://localhost:4444/pizzaz-carousel-2d2b.css",
-    rootElement: "pizzaz-carousel-root",
     schema: z.object({
       pizzaTopping: z.string().describe("Topping to mention when rendering the pizza carousel.")
     }),
@@ -51,12 +51,9 @@ const widgets = [
     }
   },
   {
-    id: "pizza-albums",
+    component: "pizzaz-albums",  // → src/components/pizzaz-albums/
     title: "Show Pizza Album",
     description: "Display a photo album of pizzas",
-    htmlSrc: "http://localhost:4444/pizzaz-albums-2d2b.js",
-    cssSrc: "http://localhost:4444/pizzaz-albums-2d2b.css",
-    rootElement: "pizzaz-albums-root",
     schema: z.object({
       pizzaTopping: z.string().describe("Topping to mention when rendering the pizza albums.")
     }),
@@ -70,12 +67,9 @@ const widgets = [
     }
   },
   {
-    id: "pizza-list",
+    component: "pizzaz-list",  // → src/components/pizzaz-list/
     title: "Show Pizza List",
     description: "Display a list of pizza places",
-    htmlSrc: "http://localhost:4444/pizzaz-list-2d2b.js",
-    cssSrc: "http://localhost:4444/pizzaz-list-2d2b.css",
-    rootElement: "pizzaz-list-root",
     schema: z.object({
       pizzaTopping: z.string().describe("Topping to mention when rendering the pizza list.")
     }),
@@ -89,30 +83,9 @@ const widgets = [
     }
   },
   {
-    id: "pizza-video",
-    title: "Show Pizza Video",
-    description: "Display a pizza video player",
-    htmlSrc: "http://localhost:4444/pizzaz-video-2d2b.js",
-    cssSrc: "http://localhost:4444/pizzaz-video-2d2b.css",
-    rootElement: "pizzaz-video-root",
-    schema: z.object({
-      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza video.")
-    }),
-    handler: async (args: { pizzaTopping: string }) => ({
-      text: "Rendered a pizza video!",
-      data: { pizzaTopping: args.pizzaTopping }
-    }),
-    meta: {
-      invoking: "Hand-tossing a video",
-      invoked: "Served a fresh video"
-    }
-  },
-  {
-    id: "kaka-haha",
+    component: "kaka-haha",  // → src/components/kaka-haha/
     title: "Show Kaka Haha",
     description: "Display a simple greeting message",
-    htmlSrc: "http://localhost:4444/kaka-haha-2d2b.js",
-    rootElement: "kaka-haha-root",
     schema: z.object({
       message: z.string().optional().describe("Optional message to display (not used yet)")
     }),
@@ -127,30 +100,29 @@ const widgets = [
     }
   },
   {
-    id: "wowwow",
-    title: "Show Wow Wow",
-    description: "Display a wow message",
-    htmlSrc: "http://localhost:4444/wowwow-2d2b.js",
-    rootElement: "wowwow-root",
+    component: "last-test",  // → src/components/last-test/
+    title: "Show Last Test",
+    description: "Display the final test component",
     schema: z.object({
-      intensity: z.number().optional().describe("Intensity level (not used yet)")
+      message: z.string().optional().describe("Optional message to display")
     }),
-    handler: async (args: { intensity?: number }) => ({
-      text: "Wow Wow displayed!",
-      data: { intensity: args.intensity }
+    handler: async (args: { message?: string }) => ({
+      text: "Last test component rendered!",
+      data: { message: args.message }
     }),
     meta: {
-      invoking: "Preparing wow wow...",
-      invoked: "Wow Wow displayed!",
-      widgetDescription: "Renders a bold 'Wow Wow' message in large text on a white background."
+      invoking: "Loading last test...",
+      invoked: "Last test displayed!",
+      widgetDescription: "Renders a beautiful gradient test component with a title and emoji. Perfect for final testing and demonstration purposes."
     }
   }
 ];
 
-// Step 2: Create and start the server (framework handles everything automatically!)
+// Step 2: Create and start server (framework handles everything automatically!)
+// Version is auto-read from frontend package.json to ensure hash matches
 const server = createMcpWidgetServer({
   name: "pizzaz-node",
-  version: "0.1.0",
+  version: frontendPkg.version,  // Auto-synced with chatjs/package.json!
   widgets,
   port: Number(process.env.PORT ?? 8000)
 });

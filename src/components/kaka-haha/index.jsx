@@ -2,8 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 /**
- * Kaka Haha Widget
- * A simple test widget that displays text
+ * Kaka Haha 위젯
+ * 간단한 텍스트를 표시하는 테스트 위젯
  */
 function KakaHaha() {
   return (
@@ -30,7 +30,7 @@ function KakaHaha() {
   );
 }
 
-// Mount
+// 마운트
 const rootElement = document.getElementById('kaka-haha-root');
 if (rootElement) {
   const root = createRoot(rootElement);

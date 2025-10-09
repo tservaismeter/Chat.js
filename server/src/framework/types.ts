@@ -1,50 +1,62 @@
 import type { z } from "zod";
 
 /**
- * Widget Definition Type
+ * Widget definition type
  * Core type used when defining widgets
  */
 export type WidgetDefinition<TSchema extends z.ZodType = z.ZodType> = {
-  /** Unique widget ID (used as tool name) */
-  id: string;
+  /** 
+   * Component name - maps to src/components/{component}/
+   * Also used as tool ID and asset filename
+   */
+  component: string;
   
-  /** Widget display name */
+  /** Display name of the widget */
   title: string;
   
   /** Widget description (optional) */
   description?: string;
   
-  /** Widget JavaScript file URL */
-  htmlSrc: string;
+  /** 
+   * JavaScript file URL for the widget
+   * If omitted, automatically generated as: {frontendUrl}/{component}-{hash}.js
+   */
+  htmlSrc?: string;
   
-  /** Widget CSS file URL (optional) */
+  /** 
+   * CSS file URL for the widget (optional)
+   * If omitted, automatically generated as: {frontendUrl}/{component}-{hash}.css
+   */
   cssSrc?: string;
   
-  /** Root element ID where the widget will be rendered */
-  rootElement: string;
+  /** 
+   * Root element ID where the widget will be rendered
+   * If omitted, automatically generated as: {component}-root
+   */
+  rootElement?: string;
   
   /** Input parameter schema (Zod schema) */
   schema: TSchema;
   
-  /** Handler function to execute when widget is called */
+  /** Handler function executed when widget is called */
   handler: (args: z.infer<TSchema>) => Promise<WidgetHandlerResult>;
   
   /** Additional metadata (optional) */
   meta?: {
-    /** Widget loading message */
+    /** Message shown while widget is loading */
     invoking?: string;
-    /** Widget load complete message */
+    /** Message shown when widget is loaded */
     invoked?: string;
-    /** Widget description - helps the model understand the widget's role */
+    /** Widget description - helps model understand widget's role */
     widgetDescription?: string;
   };
 };
 
 /**
- * Widget Handler Result Type
+ * Result type returned by widget handlers
  */
 export type WidgetHandlerResult = {
-  /** Text response to show to the user */
+  /** Text response shown to user */
   text: string;
   
   /** Structured data (optional) */
@@ -52,16 +64,16 @@ export type WidgetHandlerResult = {
 };
 
 /**
- * MCP Widget Server Configuration
+ * MCP widget server configuration
  */
 export type ServerConfig = {
   /** Server name */
   name: string;
   
-  /** Server version */
+  /** Server version (used to generate asset hash) */
   version: string;
   
-  /** Widget definition array */
+  /** Widget definitions array */
   widgets: WidgetDefinition[];
   
   /** HTTP server port (default: 8000) */
@@ -72,13 +84,19 @@ export type ServerConfig = {
   
   /** POST message endpoint path (default: "/mcp/messages") */
   postPath?: string;
+  
+  /**
+   * Frontend server URL where widget assets are served
+   * Default: "http://localhost:4444"
+   */
+  frontendUrl?: string;
 };
 
 /**
- * Widget metadata used internally
+ * Internal widget metadata
  */
 export type WidgetMeta = {
-  id: string;
+  component: string;
   title: string;
   templateUri: string;
   html: string;
