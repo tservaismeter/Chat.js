@@ -1,6 +1,6 @@
 # [Chat.js](https://github.com/DooiLabs/Chat.js) · [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/DooiLabs/Chat.js/blob/main/LICENSE) [![npm version](https://img.shields.io/npm/v/create-chatgpt-app.svg?style=flat)](https://www.npmjs.com/package/create-chatgpt-app) [![GitHub stars](https://img.shields.io/github/stars/DooiLabs/Chat.js.svg?style=social&label=Star)](https://github.com/DooiLabs/Chat.js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/DooiLabs/Chat.js/blob/main/CONTRIBUTING.md)
 
-The ChatGPT apps framework. Define widgets and schemas - the framework handles MCP resources, tools, and handlers automatically.
+The ChatGPT apps framework. Make components, define schemas - everything else is automated.
 
 > **Note**: This project is a fork of [OpenAI's Apps SDK Examples](https://github.com/openai/openai-apps-sdk-examples), enhanced with an automated framework to reduce boilerplate and simplify widget creation.
 
