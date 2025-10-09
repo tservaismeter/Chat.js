@@ -1,136 +1,150 @@
-# Apps SDK Examples Gallery
+# MCP Widget Framework
 
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+A framework for building OpenAI MCP servers. Define widgets and schemas - the framework handles MCP resources, tools, and handlers automatically.
 
-This repository showcases example UI components to be used with the Apps SDK, as well as example MCP servers that expose a collection of components as tools.
-It is meant to be used as a starting point and source of inspiration to build your own apps for ChatGPT.
+> **For AI Coding Tools**: If you're using an AI coding tool like Cursor, Claude Code, or Codex, try prompting:
+> 
+> _"Read the `/docs/AGENTS.md` and help me use this chatjs framework."_
 
-## MCP + Apps SDK overview
+## Quick Start
 
-The Model Context Protocol (MCP) is an open specification for connecting large language model clients to external tools, data, and user interfaces. An MCP server exposes tools that a model can call during a conversation and returns results according to the tool contracts. Those results can include extra metadata—such as inline HTML—that the Apps SDK uses to render rich UI components (widgets) alongside assistant messages.
-
-Within the Apps SDK, MCP keeps the server, model, and UI in sync. By standardizing the wire format, authentication, and metadata, it lets ChatGPT reason about your connector the same way it reasons about built-in tools. A minimal MCP integration for Apps SDK implements three capabilities:
-
-1. **List tools** – Your server advertises the tools it supports, including their JSON Schema input/output contracts and optional annotations (for example, `readOnlyHint`).
-2. **Call tools** – When a model selects a tool, it issues a `call_tool` request with arguments that match the user intent. Your server executes the action and returns structured content the model can parse.
-3. **Return widgets** – Alongside structured content, return embedded resources in the response metadata so the Apps SDK can render the interface inline in the Apps SDK client (ChatGPT).
-
-Because the protocol is transport agnostic, you can host the server over Server-Sent Events or streaming HTTP—Apps SDK supports both.
-
-The MCP servers in this demo highlight how each tool can light up widgets by combining structured payloads with `_meta.openai/outputTemplate` metadata returned from the MCP servers.
-
-## Repository structure
-
-- `src/` – Source for each widget example.
-- `assets/` – Generated HTML, JS, and CSS bundles after running the build step.
-- `pizzaz_server_node/` – MCP server implemented with the official TypeScript SDK.
-- `pizzaz_server_python/` – Python MCP server that returns the Pizzaz widgets.
-- `solar-system_server_python/` – Python MCP server for the 3D solar system widget.
-- `build-all.mts` – Vite build orchestrator that produces hashed bundles for every widget entrypoint.
-
-## Prerequisites
-
-- Node.js 18+
-- pnpm (recommended) or npm/yarn
-- Python 3.10+ (for the Python MCP server)
-
-## Install dependencies
-
-Clone the repository and install the workspace dependencies:
+### 1. Install & Build
 
 ```bash
 pnpm install
-```
-
-> Using npm or yarn? Install the root dependencies with your preferred client and adjust the commands below accordingly.
-
-## Build the components gallery
-
-The components are bundled into standalone assets that the MCP servers serve as reusable UI resources.
-
-```bash
 pnpm run build
 ```
 
-This command runs `build-all.mts`, producing versioned `.html`, `.js`, and `.css` files inside `assets/`. Each widget is wrapped with the CSS it needs so you can host the bundles directly or ship them with your own server.
+### 2. Run (3 terminals)
 
-To iterate locally, you can also launch the Vite dev server:
-
-```bash
-pnpm run dev
-```
-
-## Serve the static assets
-
-If you want to preview the generated bundles without the MCP servers, start the static file server after running a build:
-
+**Terminal 1** - Frontend assets server:
 ```bash
 pnpm run serve
 ```
 
-The assets are exposed at [`http://localhost:4444`](http://localhost:4444) with CORS enabled so that local tooling (including MCP inspectors) can fetch them.
-
-## Run the MCP servers
-
-The repository ships several demo MCP servers that highlight different widget bundles:
-
-- **Pizzaz (Node & Python)** – pizza-inspired collection of tools and components
-- **Solar system (Python)** – 3D solar system viewer
-
-Every tool response includes plain text content, structured JSON, and `_meta.openai/outputTemplate` metadata so the Apps SDK can hydrate the matching widget.
-
-### Pizzaz Node server
-
+**Terminal 2** - MCP server:
 ```bash
-cd pizzaz_server_node
+cd server
 pnpm start
 ```
 
-### Pizzaz Python server
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r pizzaz_server_python/requirements.txt
-uvicorn pizzaz_server_python.main:app --port 8000
-```
-
-### Solar system Python server
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r solar-system_server_python/requirements.txt
-uvicorn solar-system_server_python.main:app --port 8000
-```
-
-You can reuse the same virtual environment for all Python servers—install the dependencies once and run whichever entry point you need.
-
-## Testing in ChatGPT
-
-To add these apps to ChatGPT, enable [developer mode](https://platform.openai.com/docs/guides/developer-mode), and add your apps in Settings > Connectors.
-
-To add your local server without deploying it, you can use a tool like [ngrok](https://ngrok.com/) to expose your local server to the internet.
-
-For example, once your mcp servers are running, you can run:
-
+**Terminal 3** - Expose to internet:
 ```bash
 ngrok http 8000
 ```
 
-You will get a public URL that you can use to add your local server to ChatGPT in Settings > Connectors.
+Use the ngrok URL to connect to ChatGPT.
 
-For example: `https://<custom_endpoint>.ngrok-free.app/mcp`
+## Adding a New Widget
 
-## Next steps
+### Step 1: Create Component
 
-- Customize the widget data: edit the handlers in `pizzaz_server_node/src`, `pizzaz_server_python/main.py`, or the solar system server to fetch data from your systems.
-- Create your own components and add them to the gallery: drop new entries into `src/` and they will be picked up automatically by the build script.
+Create `src/components/my-widget/index.jsx`:
 
-## Contributing
+```jsx
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 
-You are welcome to open issues or submit PRs to improve this app, however, please note that we may not review all suggestions.
+function MyWidget() {
+  return <div>My Widget Content</div>;
+}
+
+const rootElement = document.getElementById('my-widget-root');
+if (rootElement) {
+  const root = createRoot(rootElement);
+  root.render(<MyWidget />);
+}
+```
+
+### Step 2: Add Widget Definition
+
+Edit `server/src/server.ts`:
+
+```typescript
+const widgets = [
+  // ... existing widgets
+  {
+    component: "my-widget",  // matches folder name
+    title: "My Widget",
+    schema: z.object({
+      param: z.string().describe("Parameter description")
+    }),
+    handler: async (args) => ({
+      text: "Widget rendered!",
+      data: args
+    })
+  }
+];
+```
+
+### Step 3: Rebuild & Restart
+
+```bash
+# Terminal 1: Rebuild
+pnpm run build
+
+# Terminal 2: Restart server
+cd server
+pnpm start
+```
+
+Done.
+
+## How It Works
+
+- `component: "my-widget"` maps to `src/components/my-widget/`
+- Build script auto-discovers all components
+- Server auto-syncs version from `package.json` for asset hashing
+- Framework auto-generates MCP tools, resources, and handlers
+
+## Troubleshooting
+
+**404 on widget assets:**
+```bash
+pnpm run build      # Rebuild
+cd server && pnpm start  # Restart server
+```
+
+**Component not found:**
+- Check `src/components/your-widget/index.jsx` exists
+- Check widget definition in `server/src/server.ts`
+
+## Project Structure
+
+```
+chatjs/
+├── src/components/          # React components (add here)
+│   └── my-widget/
+│       └── index.jsx
+├── assets/                  # Built assets (generated)
+├── server/src/
+│   ├── framework/           # MCP framework
+│   └── server.ts           # Widget definitions (edit here)
+└── package.json            # Version (auto-synced)
+```
+
+## API
+
+### Widget Definition
+
+```typescript
+{
+  component: string;              // Component folder name (required)
+  title: string;                  // Display name (required)
+  description?: string;
+  schema: ZodType;                // Input schema (required)
+  handler: (args) => Promise<{   // Handler (required)
+    text: string;
+    data?: Record<string, any>;
+  }>;
+  meta?: {
+    invoking?: string;            // "Loading..."
+    invoked?: string;             // "Loaded!"
+    widgetDescription?: string;   // For AI model understanding
+  };
+}
+```
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
+MIT
