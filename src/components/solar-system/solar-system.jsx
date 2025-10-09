@@ -10,9 +10,9 @@ import {
   Bloom,
   DepthOfField,
 } from "@react-three/postprocessing";
-import { useWidgetProps } from "../use-widget-props";
-import { useMaxHeight } from "../use-max-height";
-import { useDisplayMode } from "../use-display-mode";
+import { useWidgetProps } from "../../use-widget-props";
+import { useMaxHeight } from "../../use-max-height";
+import { useDisplayMode } from "../../use-display-mode";
 import {
   useNavigate,
   useParams,

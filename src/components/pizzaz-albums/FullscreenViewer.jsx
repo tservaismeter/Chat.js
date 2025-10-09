@@ -1,5 +1,5 @@
 import React from "react";
-import { useMaxHeight } from "../use-max-height";
+import { useMaxHeight } from "../../use-max-height";
 import FilmStrip from "./FilmStrip";
 
 export default function FullscreenViewer({ album }) {

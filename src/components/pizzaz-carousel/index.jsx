@@ -79,7 +79,7 @@ function App() {
       {canPrev && (
         <button
           aria-label="Previous"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-black text-white shadow-lg ring ring-black/5 hover:bg-gray-800"
           onClick={() => emblaApi && emblaApi.scrollPrev()}
           type="button"
         >
@@ -93,7 +93,7 @@ function App() {
       {canNext && (
         <button
           aria-label="Next"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-black text-white shadow-lg ring ring-black/5 hover:bg-gray-800"
           onClick={() => emblaApi && emblaApi.scrollNext()}
           type="button"
         >

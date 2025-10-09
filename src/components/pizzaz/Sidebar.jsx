@@ -1,6 +1,6 @@
 import React from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { useOpenAiGlobal } from "../use-openai-global";
+import { useOpenAiGlobal } from "../../use-openai-global";
 import { Filter, Settings2, Star } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 

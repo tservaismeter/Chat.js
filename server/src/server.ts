@@ -49,8 +49,8 @@ const widgets: PizzazWidget[] = [
     invoked: "Served a fresh map",
     html: `
 <div id="pizzaz-root"></div>
-<link rel="stylesheet" href="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-0038.css">
-<script type="module" src="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-0038.js"></script>
+<link rel="stylesheet" href="http://localhost:4444/pizzaz-2d2b.css">
+<script type="module" src="http://localhost:4444/pizzaz-2d2b.js"></script>
     `.trim(),
     responseText: "Rendered a pizza map!"
   },
@@ -62,8 +62,8 @@ const widgets: PizzazWidget[] = [
     invoked: "Served a fresh carousel",
     html: `
 <div id="pizzaz-carousel-root"></div>
-<link rel="stylesheet" href="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-carousel-0038.css">
-<script type="module" src="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-carousel-0038.js"></script>
+<link rel="stylesheet" href="http://localhost:4444/pizzaz-carousel-2d2b.css">
+<script type="module" src="http://localhost:4444/pizzaz-carousel-2d2b.js"></script>
     `.trim(),
     responseText: "Rendered a pizza carousel!"
   },
@@ -75,8 +75,8 @@ const widgets: PizzazWidget[] = [
     invoked: "Served a fresh album",
     html: `
 <div id="pizzaz-albums-root"></div>
-<link rel="stylesheet" href="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-albums-0038.css">
-<script type="module" src="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-albums-0038.js"></script>
+<link rel="stylesheet" href="http://localhost:4444/pizzaz-albums-2d2b.css">
+<script type="module" src="http://localhost:4444/pizzaz-albums-2d2b.js"></script>
     `.trim(),
     responseText: "Rendered a pizza album!"
   },
@@ -88,8 +88,8 @@ const widgets: PizzazWidget[] = [
     invoked: "Served a fresh list",
     html: `
 <div id="pizzaz-list-root"></div>
-<link rel="stylesheet" href="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-list-0038.css">
-<script type="module" src="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-list-0038.js"></script>
+<link rel="stylesheet" href="http://localhost:4444/pizzaz-list-2d2b.css">
+<script type="module" src="http://localhost:4444/pizzaz-list-2d2b.js"></script>
     `.trim(),
     responseText: "Rendered a pizza list!"
   },
@@ -101,41 +101,112 @@ const widgets: PizzazWidget[] = [
     invoked: "Served a fresh video",
     html: `
 <div id="pizzaz-video-root"></div>
-<link rel="stylesheet" href="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-video-0038.css">
-<script type="module" src="https://persistent.oaistatic.com/ecosystem-built-assets/pizzaz-video-0038.js"></script>
+<link rel="stylesheet" href="http://localhost:4444/pizzaz-video-2d2b.css">
+<script type="module" src="http://localhost:4444/pizzaz-video-2d2b.js"></script>
     `.trim(),
     responseText: "Rendered a pizza video!"
+  },
+  {
+    id: "kaka-wow",
+    title: "Show Kaka Wow",
+    templateUri: "ui://widget/kaka-wow.html",
+    invoking: "Loading kaka wow",
+    invoked: "Kaka wow loaded!",
+    html: `
+<div id="kaka-wow-root"></div>
+<link rel="stylesheet" href="http://localhost:4444/kaka-wow-2d2b.css">
+<script type="module" src="http://localhost:4444/kaka-wow-2d2b.js"></script>
+    `.trim(),
+    responseText: "Kaka wow!"
   }
 ];
 
-const widgetsById = new Map<string, PizzazWidget>();
-const widgetsByUri = new Map<string, PizzazWidget>();
+// 편리한 조회를 위한 Map
+const widgetsById = new Map<string, PizzazWidget>(
+  widgets.map(w => [w.id, w])
+);
 
-widgets.forEach((widget) => {
-  widgetsById.set(widget.id, widget);
-  widgetsByUri.set(widget.templateUri, widget);
-});
+const widgetsByUri = new Map<string, PizzazWidget>(
+  widgets.map(w => [w.templateUri, w])
+);
 
-const toolInputSchema = {
-  type: "object",
-  properties: {
-    pizzaTopping: {
-      type: "string",
-      description: "Topping to mention when rendering the widget."
-    }
+// 각 위젯별 입력 스키마
+const widgetSchemas = {
+  "pizza-map": {
+    type: "object",
+    properties: {
+      pizzaTopping: {
+        type: "string",
+        description: "Topping to mention when rendering the pizza map."
+      }
+    },
+    required: ["pizzaTopping"],
+    additionalProperties: false
   },
-  required: ["pizzaTopping"],
-  additionalProperties: false
+  "pizza-carousel": {
+    type: "object",
+    properties: {
+      pizzaTopping: {
+        type: "string",
+        description: "Topping to mention when rendering the pizza carousel."
+      }
+    },
+    required: ["pizzaTopping"],
+    additionalProperties: false
+  },
+  "pizza-albums": {
+    type: "object",
+    properties: {
+      pizzaTopping: {
+        type: "string",
+        description: "Topping to mention when rendering the pizza albums."
+      }
+    },
+    required: ["pizzaTopping"],
+    additionalProperties: false
+  },
+  "pizza-list": {
+    type: "object",
+    properties: {
+      pizzaTopping: {
+        type: "string",
+        description: "Topping to mention when rendering the pizza list."
+      }
+    },
+    required: ["pizzaTopping"],
+    additionalProperties: false
+  },
+  "pizza-video": {
+    type: "object",
+    properties: {
+      pizzaTopping: {
+        type: "string",
+        description: "Topping to mention when rendering the pizza video."
+      }
+    },
+    required: ["pizzaTopping"],
+    additionalProperties: false
+  },
+  "kaka-wow": {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false
+  }
 } as const;
 
-const toolInputParser = z.object({
+// 각 위젯별 파서
+const pizzaInputParser = z.object({
   pizzaTopping: z.string()
 });
 
+const kakaWowInputParser = z.object({});
+
+// MCP 타입들 생성
 const tools: Tool[] = widgets.map((widget) => ({
   name: widget.id,
   description: widget.title,
-  inputSchema: toolInputSchema,
+  inputSchema: widgetSchemas[widget.id as keyof typeof widgetSchemas],
   title: widget.title,
   _meta: widgetMeta(widget)
 }));
@@ -208,20 +279,35 @@ function createPizzazServer(): Server {
       throw new Error(`Unknown tool: ${request.params.name}`);
     }
 
-    const args = toolInputParser.parse(request.params.arguments ?? {});
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: widget.responseText
-        }
-      ],
-      structuredContent: {
-        pizzaTopping: args.pizzaTopping
-      },
-      _meta: widgetMeta(widget)
-    };
+    // 각 위젯별로 다른 파서 사용
+    if (widget.id === "kaka-wow") {
+      const args = kakaWowInputParser.parse(request.params.arguments ?? {});
+      return {
+        content: [
+          {
+            type: "text",
+            text: widget.responseText
+          }
+        ],
+        structuredContent: {},
+        _meta: widgetMeta(widget)
+      };
+    } else {
+      // 피자 관련 위젯들
+      const args = pizzaInputParser.parse(request.params.arguments ?? {});
+      return {
+        content: [
+          {
+            type: "text",
+            text: widget.responseText
+          }
+        ],
+        structuredContent: {
+          pizzaTopping: args.pizzaTopping
+        },
+        _meta: widgetMeta(widget)
+      };
+    }
   });
 
   return server;

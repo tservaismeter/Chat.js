@@ -6,8 +6,8 @@ import markers from "./markers.json";
 import { AnimatePresence } from "framer-motion";
 import Inspector from "./Inspector";
 import Sidebar from "./Sidebar";
-import { useOpenAiGlobal } from "../use-openai-global";
-import { useMaxHeight } from "../use-max-height";
+import { useOpenAiGlobal } from "../../use-openai-global";
+import { useMaxHeight } from "../../use-max-height";
 import { Maximize2 } from "lucide-react";
 import {
   useNavigate,
