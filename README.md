@@ -42,8 +42,6 @@ pnpm start
 ngrok http 8000
 ```
 
-Use the ngrok URL to connect to ChatGPT.
-
 > 💡 **Tip**: If you used `npx create-chatgpt-app`, your project already includes 6 example widgets (pizzaz map, albums, carousel, list, solar-system, and todo) ready to try!
 
 ### 4. Testing in ChatGPT
