@@ -56,7 +56,7 @@ To add these apps to ChatGPT, enable developer mode, and add your apps in **Sett
 
 Add your local public URL from ngrok(like 'https://<custom_endpoint>.ngrok-free.app/mcp') to ChatGPT in **Settings > Connectors**.
 
-## Adding a New Widget
+## Adding a New Widget (Component)
 
 ### Step 1: Create Component
 
@@ -77,7 +77,7 @@ if (rootElement) {
 }
 ```
 
-### Step 2: Add Widget Definition
+### Step 2: Add Widget Definition (Schema)
 
 Edit `server/src/server.ts`:
 
