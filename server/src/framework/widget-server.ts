@@ -357,7 +357,7 @@ export class McpWidgetServer {
         return;
       }
 
-      if (req.method === "GET" && url.pathname.startsWith("/assets/")) {
+      if ((req.method === "GET" || req.method === "OPTIONS") && url.pathname.startsWith("/assets/")) {
         const relativePath = decodeURIComponent(url.pathname.slice("/assets/".length));
         if (!relativePath) {
           res.writeHead(404).end("Not Found");
@@ -371,6 +371,17 @@ export class McpWidgetServer {
           !existsSync(filePath)
         ) {
           res.writeHead(404).end("Not Found");
+          return;
+        }
+
+        if (req.method === "OPTIONS") {
+          res.writeHead(204, {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "content-type",
+            "Cross-Origin-Resource-Policy": "cross-origin",
+          });
+          res.end();
           return;
         }
 
@@ -400,6 +411,9 @@ export class McpWidgetServer {
             "Content-Type": contentType,
             "Cache-Control": "public, max-age=31536000, immutable",
             "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "content-type",
+            "Cross-Origin-Resource-Policy": "cross-origin",
           });
           const stream = createReadStream(filePath);
           stream.pipe(res);
