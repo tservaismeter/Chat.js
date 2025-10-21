@@ -109,3 +109,6 @@ function App() {
 }
 
 createRoot(document.getElementById("pizzaz-list-root")).render(<App />);
+
+export default App;
+export { App };

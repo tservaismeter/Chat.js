@@ -1,5 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createReadStream, existsSync, statSync } from "node:fs";
 import { URL } from "node:url";
+import { extname, resolve, sep } from "node:path";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -35,6 +37,7 @@ export class McpWidgetServer {
   private config: ServerConfig;
   private sessions = new Map<string, SessionRecord>();
   private widgetMetas: WidgetMeta[];
+  private assetsDir: string;
 
   constructor(config: ServerConfig) {
     this.config = config;
@@ -62,6 +65,8 @@ export class McpWidgetServer {
       html: generateWidgetHtml(widget.rootElement!, widget.htmlSrc!, widget.cssSrc),
       definition: widget
     }));
+
+    this.assetsDir = resolve(import.meta.dirname, "../../../assets");
   }
 
   /**
@@ -319,6 +324,7 @@ export class McpWidgetServer {
     const port = this.config.port ?? 8000;
     const ssePath = this.config.ssePath ?? "/mcp";
     const postPath = this.config.postPath ?? "/mcp/messages";
+    const assetsDir = this.assetsDir;
 
     const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
       if (!req.url) {
@@ -351,6 +357,68 @@ export class McpWidgetServer {
         return;
       }
 
+      if (req.method === "GET" && url.pathname.startsWith("/assets/")) {
+        const relativePath = decodeURIComponent(url.pathname.slice("/assets/".length));
+        if (!relativePath) {
+          res.writeHead(404).end("Not Found");
+          return;
+        }
+
+        const filePath = resolve(assetsDir, relativePath);
+
+        if (
+          (!filePath.startsWith(`${assetsDir}${sep}`) && filePath !== assetsDir) ||
+          !existsSync(filePath)
+        ) {
+          res.writeHead(404).end("Not Found");
+          return;
+        }
+
+        try {
+          const stats = statSync(filePath);
+          if (stats.isDirectory()) {
+            res.writeHead(404).end("Not Found");
+            return;
+          }
+
+          const mimeTypes: Record<string, string> = {
+            ".js": "application/javascript",
+            ".css": "text/css",
+            ".html": "text/html",
+            ".json": "application/json",
+            ".map": "application/json",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".svg": "image/svg+xml",
+            ".webp": "image/webp",
+          };
+
+          const ext = extname(filePath);
+          const contentType = mimeTypes[ext] ?? "application/octet-stream";
+          res.writeHead(200, {
+            "Content-Type": contentType,
+            "Cache-Control": "public, max-age=31536000, immutable",
+          });
+          const stream = createReadStream(filePath);
+          stream.pipe(res);
+          stream.on("error", () => {
+            if (!res.headersSent) {
+              res.writeHead(500);
+            }
+            res.end();
+          });
+        } catch (err) {
+          console.error("Failed to serve asset", err);
+          if (!res.headersSent) {
+            res.writeHead(500).end("Failed to read asset");
+          } else {
+            res.end();
+          }
+        }
+        return;
+      }
+
       res.writeHead(404).end("Not Found");
     });
 
@@ -379,4 +447,3 @@ export class McpWidgetServer {
 export function createMcpWidgetServer(config: ServerConfig): McpWidgetServer {
   return new McpWidgetServer(config);
 }
-

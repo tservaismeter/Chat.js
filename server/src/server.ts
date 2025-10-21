@@ -14,6 +14,9 @@ import { createMcpWidgetServer } from "./framework/index.js";
 const frontendPkgPath = resolve(import.meta.dirname, "../../package.json");
 const frontendPkg = JSON.parse(readFileSync(frontendPkgPath, "utf8"));
 
+const publicOrigin =
+  process.env.PUBLIC_ORIGIN?.replace(/\/+$/, "") || undefined;
+
 // Step 1: Define widgets (component maps to src/components/{component}/)
 const widgets = [
   {
@@ -81,6 +84,125 @@ const widgets = [
       invoking: "Hand-tossing a list",
       invoked: "Served a fresh list"
     }
+  },
+  {
+    component: "energy-plans",  // → src/components/energy-plans/
+    title: "Show Texas Energy Plans",
+    description: "Surface competitive retail electricity offers in deregulated Texas markets",
+    schema: z.object({
+      zipCode: z.string().describe("Target Texas ZIP code for available plans."),
+      usageKwh: z
+        .number()
+        .min(250)
+        .max(5000)
+        .optional()
+        .describe("Estimated monthly usage in kWh (defaults to 1000 if not provided)."),
+      termMonths: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Desired contract length in months if the user specifies it."),
+      renewableOnly: z
+        .boolean()
+        .optional()
+        .describe("Filter to 100% renewable plans when true.")
+    }),
+    handler: async (args: {
+      zipCode: string;
+      usageKwh?: number;
+      termMonths?: number;
+      renewableOnly?: boolean;
+    }) => {
+      const usageKwh = args.usageKwh ?? 1000;
+
+      const basePlans = [
+        {
+          provider: "Lone Star Energy",
+          planName: "Saver 12",
+          rateCentsPerKwh: 11.3,
+          contractLengthMonths: 12,
+          cancellationFee: "$150",
+          greenEnergy: false,
+          summary:
+            "Best for budget-minded households wanting predictable pricing for a full year.",
+          perks: ["Price-protected", "Same-day start available"],
+          link: "https://example.com/lone-star-saver-12"
+        },
+        {
+          provider: "Bluebonnet Power",
+          planName: "Flex Green 24",
+          rateCentsPerKwh: 12.1,
+          contractLengthMonths: 24,
+          cancellationFee: "$200",
+          greenEnergy: true,
+          summary:
+            "Lock in a longer term with 100% renewable mix sourced from Texas wind contracts.",
+          perks: ["Renewable energy credits", "Bill credits over 1200 kWh"],
+          link: "https://example.com/bluebonnet-flex-green-24"
+        },
+        {
+          provider: "Gulf Coast Electric",
+          planName: "Intro Saver 6",
+          rateCentsPerKwh: 10.9,
+          contractLengthMonths: 6,
+          cancellationFee: "$99",
+          greenEnergy: false,
+          summary:
+            "Short-term contract with the lowest introductory rate, ideal for renters.",
+          perks: ["No base charge", "AutoPay discount"],
+          link: "https://example.com/gulf-coast-intro-saver-6"
+        },
+        {
+          provider: "Rio Grande Power",
+          planName: "Sunrise 12",
+          rateCentsPerKwh: 11.8,
+          contractLengthMonths: 12,
+          cancellationFee: "$135",
+          greenEnergy: true,
+          summary:
+            "100% solar-backed plan with modest premium and fixed delivery charges.",
+          perks: ["Smart thermostat rebate", "Monthly usage insights"],
+          link: "https://example.com/rio-grande-sunrise-12"
+        }
+      ];
+
+      const filteredPlans = basePlans
+        .filter((plan) =>
+          args.termMonths ? plan.contractLengthMonths === args.termMonths : true
+        )
+        .filter((plan) => (args.renewableOnly ? plan.greenEnergy : true))
+        .map((plan) => {
+          const deliveryFee = 3.75; // Simulated TDU base charge in dollars
+          const monthlyEstimate =
+            (usageKwh * plan.rateCentsPerKwh) / 100 + deliveryFee;
+          return {
+            ...plan,
+            monthlyEstimate,
+            perks: plan.perks ?? []
+          };
+        })
+        .sort((a, b) => a.rateCentsPerKwh - b.rateCentsPerKwh);
+
+      return {
+        text: `Found ${filteredPlans.length} plans for ${args.zipCode}.`,
+        data: {
+          criteria: {
+            zipCode: args.zipCode,
+            usageKwh,
+            termMonths: args.termMonths ?? null,
+            renewableOnly: args.renewableOnly ?? false
+          },
+          plans: filteredPlans
+        }
+      };
+    },
+    meta: {
+      invoking: "Checking Oncor and CenterPoint rate sheets…",
+      invoked: "Texas energy plans ready!",
+      widgetDescription:
+        "Displays a ranked list of Texas retail electricity plans with pricing, contract length, perks, and renewable status based on the user's requested ZIP, term, and usage."
+    }
   }
 ];
 
@@ -90,7 +212,8 @@ const server = createMcpWidgetServer({
   name: "pizzaz-node",
   version: frontendPkg.version,  // Auto-synced with chatjs/package.json!
   widgets,
-  port: Number(process.env.PORT ?? 8000)
+  port: Number(process.env.PORT ?? 8000),
+  frontendUrl: publicOrigin ? `${publicOrigin}/assets` : undefined
 });
 
 server.start();
