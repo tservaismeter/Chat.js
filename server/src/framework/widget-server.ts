@@ -399,6 +399,7 @@ export class McpWidgetServer {
           res.writeHead(200, {
             "Content-Type": contentType,
             "Cache-Control": "public, max-age=31536000, immutable",
+            "Access-Control-Allow-Origin": "*",
           });
           const stream = createReadStream(filePath);
           stream.pipe(res);
