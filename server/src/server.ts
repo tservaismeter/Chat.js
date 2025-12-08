@@ -9,6 +9,7 @@ import { z } from "zod";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createMcpWidgetServer } from "./framework/index.js";
+import { MOCK_PLANS, TDU_FEE, findPlanById, calculateEstimate } from "./data/plans.js";
 
 // Auto-read version from frontend package.json
 const frontendPkgPath = resolve(import.meta.dirname, "../../package.json");
@@ -202,6 +203,121 @@ const widgets = [
       invoked: "Texas energy plans ready!",
       widgetDescription:
         "Displays a ranked list of Texas retail electricity plans with pricing, contract length, perks, and renewable status based on the user's requested ZIP, term, and usage."
+    }
+  },
+  {
+    component: "get-plans",  // → src/components/get-plans/
+    title: "Get Energy Plans",
+    description: "Shows available energy plans for a Texas ZIP code in a comparison table format",
+    schema: z.object({
+      zipCode: z.string().describe("Texas ZIP code for available plans"),
+      usageKwh: z
+        .number()
+        .min(250)
+        .max(5000)
+        .optional()
+        .describe("Estimated monthly usage in kWh (defaults to 1000)"),
+      termMonths: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Filter by contract length in months"),
+      renewableOnly: z
+        .boolean()
+        .optional()
+        .describe("Only show 100% renewable plans when true")
+    }),
+    handler: async (args: {
+      zipCode: string;
+      usageKwh?: number;
+      termMonths?: number;
+      renewableOnly?: boolean;
+    }) => {
+      const usageKwh = args.usageKwh ?? 1000;
+
+      const filteredPlans = MOCK_PLANS
+        .filter((plan) =>
+          args.termMonths ? plan.contractLengthMonths === args.termMonths : true
+        )
+        .filter((plan) => (args.renewableOnly ? plan.greenEnergy : true))
+        .map((plan) => ({
+          ...plan,
+          monthlyEstimate: calculateEstimate(usageKwh, plan.rateCentsPerKwh)
+        }))
+        .sort((a, b) => a.rateCentsPerKwh - b.rateCentsPerKwh);
+
+      return {
+        text: `Found ${filteredPlans.length} energy plans for ZIP ${args.zipCode}.`,
+        data: {
+          criteria: {
+            zipCode: args.zipCode,
+            usageKwh,
+            termMonths: args.termMonths ?? null,
+            renewableOnly: args.renewableOnly ?? false
+          },
+          plans: filteredPlans
+        }
+      };
+    },
+    meta: {
+      invoking: "Searching for plans...",
+      invoked: "Plans loaded",
+      widgetDescription:
+        "Displays a comparison table of Texas energy plans with provider, rate, term, green status, and monthly estimate."
+    }
+  },
+  {
+    component: "estimate-bill",  // → src/components/estimate-bill/
+    title: "Estimate Bill",
+    description: "Calculates estimated monthly electricity bill based on usage and selected plan",
+    schema: z.object({
+      planId: z.string().describe("Plan identifier (e.g., 'lonestar-saver12', 'bluebonnet-flexgreen24')"),
+      usageKwh: z
+        .number()
+        .min(100)
+        .max(10000)
+        .describe("Monthly electricity usage in kWh")
+    }),
+    handler: async (args: { planId: string; usageKwh: number }) => {
+      const plan = findPlanById(args.planId);
+
+      if (!plan) {
+        return {
+          text: `Plan '${args.planId}' not found. Available plans: ${MOCK_PLANS.map(p => p.id).join(", ")}`,
+          data: { error: "Plan not found", availablePlans: MOCK_PLANS.map(p => p.id) }
+        };
+      }
+
+      const energyCharge = (args.usageKwh * plan.rateCentsPerKwh) / 100;
+      const estimate = energyCharge + TDU_FEE;
+
+      return {
+        text: `Estimated monthly bill: $${estimate.toFixed(2)} for ${args.usageKwh} kWh on ${plan.planName}.`,
+        data: {
+          plan: {
+            id: plan.id,
+            provider: plan.provider,
+            planName: plan.planName,
+            rateCentsPerKwh: plan.rateCentsPerKwh,
+            contractLengthMonths: plan.contractLengthMonths,
+            cancellationFee: plan.cancellationFee,
+            greenEnergy: plan.greenEnergy
+          },
+          usageKwh: args.usageKwh,
+          estimate,
+          breakdown: {
+            energyCharge,
+            tduFee: TDU_FEE
+          }
+        }
+      };
+    },
+    meta: {
+      invoking: "Calculating estimate...",
+      invoked: "Estimate ready",
+      widgetDescription:
+        "Displays estimated monthly electricity bill with breakdown of energy charges and TDU fees."
     }
   }
 ];
