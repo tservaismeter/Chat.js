@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { useOpenAiGlobal } from "../../use-openai-global";
 
 function formatDollars(value) {
   if (typeof value !== "number") return "—";
@@ -7,18 +8,7 @@ function formatDollars(value) {
 }
 
 function App() {
-  const [payload, setPayload] = React.useState(() => {
-    if (typeof window !== "undefined" && window.openai?.toolOutput) {
-      return window.openai.toolOutput;
-    }
-    return null;
-  });
-
-  React.useEffect(() => {
-    if (window.openai?.toolOutput) {
-      setPayload(window.openai.toolOutput);
-    }
-  }, []);
+  const payload = useOpenAiGlobal("toolOutput");
 
   const estimate = payload?.estimate;
   const plan = payload?.plan;
@@ -55,15 +45,15 @@ function App() {
                     Plan
                   </div>
                   <div className="font-medium text-black">
-                    {plan.planName}
+                    {plan.name}
                   </div>
                   <div className="text-sm text-black/60">
-                    {plan.provider}
+                    {plan.retailer}
                   </div>
                 </div>
-                {plan.greenEnergy && (
+                {plan.renewablePercent > 0 && (
                   <span className="text-[#047857] bg-[#ECFDF5] px-2.5 py-1 rounded-full text-xs font-medium">
-                    100% Renewable
+                    {plan.renewablePercent}% Renewable
                   </span>
                 )}
               </div>
@@ -76,8 +66,8 @@ function App() {
                 <span>{usageKwh?.toLocaleString()} kWh</span>
               </div>
               <div className="flex justify-between text-black/70">
-                <span>Rate</span>
-                <span>{plan.rateCentsPerKwh?.toFixed(2)} ¢/kWh</span>
+                <span>Energy rate</span>
+                <span>{plan.energyRate?.toFixed(2)} ¢/kWh</span>
               </div>
               {breakdown && (
                 <>
@@ -86,8 +76,16 @@ function App() {
                     <span>${formatDollars(breakdown.energyCharge)}</span>
                   </div>
                   <div className="flex justify-between text-black/70">
+                    <span>Retailer base fee</span>
+                    <span>${formatDollars(breakdown.retailerBaseFee)}</span>
+                  </div>
+                  <div className="flex justify-between text-black/70">
                     <span>TDU delivery</span>
-                    <span>${formatDollars(breakdown.tduFee)}</span>
+                    <span>${formatDollars(breakdown.tduDeliveryCharge)}</span>
+                  </div>
+                  <div className="flex justify-between text-black/70">
+                    <span>TDU base fee</span>
+                    <span>${formatDollars(breakdown.tduBaseFee)}</span>
                   </div>
                 </>
               )}
@@ -99,8 +97,22 @@ function App() {
 
             {/* Contract Info */}
             <div className="mt-4 pt-4 border-t border-black/5 text-xs text-black/50 text-center">
-              {plan.contractLengthMonths}-month contract • {plan.cancellationFee} early termination fee
+              {plan.termLengthMonths}-month contract{plan.etf != null && ` • $${plan.etf} ETF`}
             </div>
+
+            {/* Sign Up Link */}
+            {plan.signupUrl && (
+              <div className="mt-4 text-center">
+                <a
+                  href={plan.signupUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-full bg-[#2563EB] text-white px-6 py-2.5 text-sm font-medium hover:opacity-90 transition"
+                >
+                  Sign up for this plan
+                </a>
+              </div>
+            )}
           </>
         ) : (
           <div className="py-10 text-center text-black/60">

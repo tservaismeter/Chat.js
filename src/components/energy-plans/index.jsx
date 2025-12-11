@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { useOpenAiGlobal } from "../../use-openai-global";
 
 function formatCents(value) {
   if (typeof value !== "number") return value ?? "–";
@@ -12,18 +13,7 @@ function formatDollars(value) {
 }
 
 function App() {
-  const [payload, setPayload] = React.useState(() => {
-    if (typeof window !== "undefined" && window.openai?.toolOutput) {
-      return window.openai.toolOutput;
-    }
-    return null;
-  });
-
-  React.useEffect(() => {
-    if (window.openai?.toolOutput) {
-      setPayload(window.openai.toolOutput);
-    }
-  }, []);
+  const payload = useOpenAiGlobal("toolOutput");
 
   const plans = Array.isArray(payload?.plans) ? payload.plans : [];
   const criteria = payload?.criteria ?? {};
@@ -84,43 +74,26 @@ function App() {
 
             return (
               <div
-                key={`${plan.provider}-${plan.planName}-${index}`}
+                key={`${plan.retailer}-${plan.name}-${index}`}
                 className="px-4 sm:px-6 py-4 -mx-1 sm:-mx-2 rounded-2xl hover:bg-black/5 transition"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs text-black/50 uppercase tracking-wide mb-1">
-                      <span>{plan.provider || "Unknown provider"}</span>
-                      {plan.greenEnergy && (
+                      <span>{plan.retailer || "Unknown retailer"}</span>
+                      {plan.renewablePercent > 0 && (
                         <span className="text-[#047857] bg-[#ECFDF5] px-2 py-0.5 rounded-full normal-case text-[11px] font-medium">
-                          100% Renewable
+                          {plan.renewablePercent}% Renewable
                         </span>
                       )}
                     </div>
                     <div className="text-sm sm:text-base font-medium text-black truncate">
-                      {plan.planName || "Unnamed plan"}
+                      {plan.name || "Unnamed plan"}
                     </div>
-                    {plan.summary && (
-                      <div className="mt-2 text-sm text-black/60 leading-relaxed">
-                        {plan.summary}
-                      </div>
-                    )}
-                    {Array.isArray(plan.perks) && plan.perks.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {plan.perks.map((perk, perkIndex) => (
-                          <span
-                            key={`${plan.planName}-perk-${perkIndex}`}
-                            className="text-[11px] font-semibold bg-[#EEF2FF] text-[#3730A3] px-2.5 py-1 rounded-full"
-                          >
-                            {perk}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className="sm:w-40">
                     <div className="text-lg font-semibold text-black">
-                      {formatCents(plan.rateCentsPerKwh)}
+                      {formatCents(plan.energyRate)}
                       <span className="text-sm text-black/50 ml-1">¢/kWh</span>
                     </div>
                     {monthlyEstimate && (
@@ -129,25 +102,30 @@ function App() {
                       </div>
                     )}
                     <div className="text-xs text-black/50 mt-1">
-                      {plan.contractLengthMonths
-                        ? `${plan.contractLengthMonths}-month term`
+                      {plan.termLengthMonths
+                        ? `${plan.termLengthMonths}-month term`
                         : "Variable term"}
                     </div>
-                    {plan.cancellationFee && (
+                    {plan.baseFee > 0 && (
                       <div className="text-xs text-black/50">
-                        Early termination: {plan.cancellationFee}
+                        Base fee: ${formatDollars(plan.baseFee)}/mo
+                      </div>
+                    )}
+                    {plan.etf != null && (
+                      <div className="text-xs text-black/50">
+                        ETF: ${plan.etf}
                       </div>
                     )}
                   </div>
-                  {plan.link && (
+                  {plan.signupUrl && (
                     <div className="sm:w-32">
                       <a
-                        href={plan.link}
+                        href={plan.signupUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center justify-center w-full sm:w-auto rounded-full bg-[#2563EB] text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition"
                       >
-                        View plan
+                        Sign up
                       </a>
                     </div>
                   )}
