@@ -3,6 +3,7 @@
  */
 
 import { supabase } from "./supabase.js";
+import { getUtilityForZipcode } from "./light-api.js";
 import type {
   EnergyPlan,
   EnergyPlanWithEstimate,
@@ -96,12 +97,27 @@ export function calculateEstimate(
 export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   const usageKwh = criteria.usageKwh ?? 1000;
 
+  // Look up utility for zipcode (always returns a code, defaults to oncor)
+  const utilityCode = await getUtilityForZipcode(criteria.zipCode);
+
+  // Get utility info from code
+  const { data: utilityInfo } = await supabase
+    .from("utilities")
+    .select("id, code, name")
+    .eq("code", utilityCode)
+    .single();
+
   // Fetch plans with retailer and utility data via JOINs
   let query = supabase.from("plans").select(`
     *,
     retailer:retailers(id, name, puct_number, logo_url, website, phone),
     utility:utilities(id, code, name)
   `);
+
+  // Always filter by utility (never show mixed utilities)
+  if (utilityInfo) {
+    query = query.eq("utility_id", utilityInfo.id);
+  }
 
   // Apply filters
   if (criteria.termMonths) {
@@ -143,6 +159,7 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
       termMonths: criteria.termMonths ?? null,
       renewableOnly: criteria.renewableOnly ?? false,
     },
+    utility: utilityInfo ? { code: utilityInfo.code, name: utilityInfo.name } : undefined,
     plans: frontendPlans,
   };
 }

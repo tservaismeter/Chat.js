@@ -1,9 +1,9 @@
 {
-  "name": "pizzaz-mcp-node",
+  "name": "energy-mcp-node",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "Example MCP server that exposes the Pizzaz demo tools using the official TypeScript SDK.",
+  "description": "MCP server that exposes Texas energy tools using the official TypeScript SDK.",
   "scripts": {
     "start": "tsx src/server.ts",
     "dev": "tsx --watch --env-file=.env src/server.ts"

@@ -254,7 +254,7 @@ Reusable. Can extract to npm package.
 
 ## Comparison with OpenAI Examples
 
-**OpenAI official example** (`pizzaz_server_node/src/server.ts`):
+**OpenAI official example**:
 - 343 lines
 - Manual tool/resource creation
 - Hardcoded URLs

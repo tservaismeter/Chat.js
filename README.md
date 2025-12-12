@@ -47,7 +47,7 @@ From the ngrok command, You will get a public URL.
 
 For example: `https://<custom_endpoint>.ngrok-free.app/mcp`
 
-> 💡 **Tip**: If you used `npx create-chatgpt-app`, your project already includes 6 example widgets (pizzaz map, albums, carousel, list, solar-system, and todo) ready to try!
+> 💡 **Tip**: If you used `npx create-chatgpt-app`, your project already includes example widgets ready to try!
 
 ### 4. Testing in ChatGPT
 

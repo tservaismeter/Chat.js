@@ -112,10 +112,7 @@ function MyComponent() {
 
 ### Using Props
 
-If components use props, check existing examples:
-- `src/components/pizzaz/index.jsx` - Map component
-- `src/components/pizzaz-albums/index.jsx` - Album viewer
-- `src/components/pizzaz-list/index.jsx` - List component
+If components use props, check existing examples in `src/components/`.
 
 ## Task 3: Understanding the Framework
 

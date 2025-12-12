@@ -1,8 +1,8 @@
 /**
- * Pizzaz MCP Server - Framework Usage Example
- * 
- * Now you only need to define widgets and schemas!
- * The framework automatically handles MCP resource creation and server setup.
+ * Energy MCP Server
+ *
+ * Define widgets and schemas - the framework automatically handles
+ * MCP resource creation and server setup.
  */
 
 import { z } from "zod";
@@ -22,74 +22,8 @@ const frontendPkg = JSON.parse(readFileSync(frontendPkgPath, "utf8"));
 const publicOrigin =
   process.env.PUBLIC_ORIGIN?.replace(/\/+$/, "") || undefined;
 
-// Step 1: Define widgets (component maps to src/components/{component}/)
+// Define widgets (component maps to src/components/{component}/)
 const widgets = [
-  {
-    component: "pizzaz",  // → src/components/pizzaz/
-    title: "Show Pizza Map",
-    description: "Display an interactive pizza map",
-    schema: z.object({
-      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza map.")
-    }),
-    handler: async (args: { pizzaTopping: string }) => ({
-      text: "Rendered a pizza map!",
-      data: { pizzaTopping: args.pizzaTopping }
-    }),
-    meta: {
-      invoking: "Hand-tossing a map",
-      invoked: "Served a fresh map",
-      widgetDescription: "Renders an interactive map showing pizza places with markers and location details. Displays information about the selected pizza topping."
-    }
-  },
-  {
-    component: "pizzaz-carousel",  // → src/components/pizzaz-carousel/
-    title: "Show Pizza Carousel",
-    description: "Display a carousel of pizza places",
-    schema: z.object({
-      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza carousel.")
-    }),
-    handler: async (args: { pizzaTopping: string }) => ({
-      text: "Rendered a pizza carousel!",
-      data: { pizzaTopping: args.pizzaTopping }
-    }),
-    meta: {
-      invoking: "Carousel some spots",
-      invoked: "Served a fresh carousel",
-      widgetDescription: "Renders a horizontally scrollable carousel displaying pizza places with images and details. Shows multiple locations at once for easy browsing."
-    }
-  },
-  {
-    component: "pizzaz-albums",  // → src/components/pizzaz-albums/
-    title: "Show Pizza Album",
-    description: "Display a photo album of pizzas",
-    schema: z.object({
-      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza albums.")
-    }),
-    handler: async (args: { pizzaTopping: string }) => ({
-      text: "Rendered a pizza album!",
-      data: { pizzaTopping: args.pizzaTopping }
-    }),
-    meta: {
-      invoking: "Hand-tossing an album",
-      invoked: "Served a fresh album"
-    }
-  },
-  {
-    component: "pizzaz-list",  // → src/components/pizzaz-list/
-    title: "Show Pizza List",
-    description: "Display a list of pizza places",
-    schema: z.object({
-      pizzaTopping: z.string().describe("Topping to mention when rendering the pizza list.")
-    }),
-    handler: async (args: { pizzaTopping: string }) => ({
-      text: "Rendered a pizza list!",
-      data: { pizzaTopping: args.pizzaTopping }
-    }),
-    meta: {
-      invoking: "Hand-tossing a list",
-      invoked: "Served a fresh list"
-    }
-  },
   {
     component: "energy-plans",  // → src/components/energy-plans/
     title: "Show Texas Energy Plans",
@@ -120,13 +54,16 @@ const widgets = [
       renewableOnly?: boolean;
     }) => {
       const result = await getPlans(args);
+      const utilityNote = result.utility
+        ? ` in ${result.utility.name} territory`
+        : "";
       return {
-        text: `Found ${result.plans.length} plans for ${args.zipCode}.`,
+        text: `Found ${result.plans.length} plans${utilityNote} for ${args.zipCode}.`,
         data: result,
       };
     },
     meta: {
-      invoking: "Checking Oncor and CenterPoint rate sheets…",
+      invoking: "Looking up your utility and checking rates…",
       invoked: "Texas energy plans ready!",
       widgetDescription:
         "Displays a ranked list of Texas retail electricity plans with pricing, contract length, and renewable status based on the user's requested ZIP, term, and usage."
@@ -162,13 +99,16 @@ const widgets = [
       renewableOnly?: boolean;
     }) => {
       const result = await getPlans(args);
+      const utilityNote = result.utility
+        ? ` in ${result.utility.name} territory`
+        : "";
       return {
-        text: `Found ${result.plans.length} energy plans for ZIP ${args.zipCode}.`,
+        text: `Found ${result.plans.length} energy plans${utilityNote} for ZIP ${args.zipCode}.`,
         data: result,
       };
     },
     meta: {
-      invoking: "Searching for plans...",
+      invoking: "Looking up your utility and searching plans…",
       invoked: "Plans loaded",
       widgetDescription:
         "Displays a comparison table of Texas energy plans with retailer, rate, term, renewable status, and monthly estimate."
@@ -211,10 +151,9 @@ const widgets = [
   }
 ];
 
-// Step 2: Create and start server (framework handles everything automatically!)
-// Version is auto-read from frontend package.json to ensure hash matches
+// Create and start server (framework handles everything automatically)
 const server = createMcpWidgetServer({
-  name: "pizzaz-node",
+  name: "energy-mcp-node",
   version: frontendPkg.version,  // Auto-synced with chatjs/package.json!
   widgets,
   port: Number(process.env.PORT ?? 8000),

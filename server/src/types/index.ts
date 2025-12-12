@@ -79,6 +79,10 @@ export interface PlansResult {
     termMonths: number | null;
     renewableOnly: boolean;
   };
+  utility?: {
+    code: string;
+    name: string;
+  };
   plans: FrontendPlan[];
 }
 
