@@ -9,7 +9,11 @@ import { z } from "zod";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createMcpWidgetServer } from "./framework/index.js";
-import { MOCK_PLANS, findPlanById, calculateEstimate, TDU_BASE_FEE, TDU_DELIVERY_RATE } from "./data/plans.js";
+import {
+  getPlans,
+  getEstimate,
+  getAllPlanIds,
+} from "./services/plan-service.js";
 
 // Auto-read version from frontend package.json
 const frontendPkgPath = resolve(import.meta.dirname, "../../package.json");
@@ -115,30 +119,10 @@ const widgets = [
       termMonths?: number;
       renewableOnly?: boolean;
     }) => {
-      const usageKwh = args.usageKwh ?? 1000;
-
-      const filteredPlans = MOCK_PLANS
-        .filter((plan) =>
-          args.termMonths ? plan.termLengthMonths === args.termMonths : true
-        )
-        .filter((plan) => (args.renewableOnly ? plan.renewablePercent === 100 : true))
-        .map((plan) => ({
-          ...plan,
-          monthlyEstimate: calculateEstimate(plan, usageKwh)
-        }))
-        .sort((a, b) => a.energyRate - b.energyRate);
-
+      const result = await getPlans(args);
       return {
-        text: `Found ${filteredPlans.length} plans for ${args.zipCode}.`,
-        data: {
-          criteria: {
-            zipCode: args.zipCode,
-            usageKwh,
-            termMonths: args.termMonths ?? null,
-            renewableOnly: args.renewableOnly ?? false
-          },
-          plans: filteredPlans
-        }
+        text: `Found ${result.plans.length} plans for ${args.zipCode}.`,
+        data: result,
       };
     },
     meta: {
@@ -177,30 +161,10 @@ const widgets = [
       termMonths?: number;
       renewableOnly?: boolean;
     }) => {
-      const usageKwh = args.usageKwh ?? 1000;
-
-      const filteredPlans = MOCK_PLANS
-        .filter((plan) =>
-          args.termMonths ? plan.termLengthMonths === args.termMonths : true
-        )
-        .filter((plan) => (args.renewableOnly ? plan.renewablePercent === 100 : true))
-        .map((plan) => ({
-          ...plan,
-          monthlyEstimate: calculateEstimate(plan, usageKwh)
-        }))
-        .sort((a, b) => a.energyRate - b.energyRate);
-
+      const result = await getPlans(args);
       return {
-        text: `Found ${filteredPlans.length} energy plans for ZIP ${args.zipCode}.`,
-        data: {
-          criteria: {
-            zipCode: args.zipCode,
-            usageKwh,
-            termMonths: args.termMonths ?? null,
-            renewableOnly: args.renewableOnly ?? false
-          },
-          plans: filteredPlans
-        }
+        text: `Found ${result.plans.length} energy plans for ZIP ${args.zipCode}.`,
+        data: result,
       };
     },
     meta: {
@@ -223,42 +187,19 @@ const widgets = [
         .describe("Monthly electricity usage in kWh")
     }),
     handler: async (args: { planId: string; usageKwh: number }) => {
-      const plan = findPlanById(args.planId);
+      const result = await getEstimate(args.planId, args.usageKwh);
 
-      if (!plan) {
+      if (!result) {
+        const availablePlans = await getAllPlanIds();
         return {
-          text: `Plan '${args.planId}' not found. Available plans: ${MOCK_PLANS.map(p => p.id).join(", ")}`,
-          data: { error: "Plan not found", availablePlans: MOCK_PLANS.map(p => p.id) }
+          text: `Plan '${args.planId}' not found. Available plans: ${availablePlans.join(", ")}`,
+          data: { error: "Plan not found", availablePlans },
         };
       }
 
-      const energyCharge = (args.usageKwh * plan.energyRate) / 100;
-      const tduDeliveryCharge = (args.usageKwh * TDU_DELIVERY_RATE) / 100;
-      const estimate = energyCharge + tduDeliveryCharge + plan.baseFee + TDU_BASE_FEE;
-
       return {
-        text: `Estimated monthly bill: $${estimate.toFixed(2)} for ${args.usageKwh} kWh on ${plan.name}.`,
-        data: {
-          plan: {
-            id: plan.id,
-            name: plan.name,
-            retailer: plan.retailer,
-            energyRate: plan.energyRate,
-            baseFee: plan.baseFee,
-            termLengthMonths: plan.termLengthMonths,
-            etf: plan.etf,
-            renewablePercent: plan.renewablePercent,
-            signupUrl: plan.signupUrl
-          },
-          usageKwh: args.usageKwh,
-          estimate,
-          breakdown: {
-            energyCharge,
-            retailerBaseFee: plan.baseFee,
-            tduDeliveryCharge,
-            tduBaseFee: TDU_BASE_FEE
-          }
-        }
+        text: `Estimated monthly bill: $${result.estimate.toFixed(2)} for ${args.usageKwh} kWh on ${result.plan.name}.`,
+        data: result,
       };
     },
     meta: {

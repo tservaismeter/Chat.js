@@ -19,15 +19,29 @@ function PlanCard({ plan, formatCents, formatDollars }) {
 
   return (
     <div className="min-w-[200px] max-w-[200px] flex-shrink-0 flex flex-col p-4 bg-white border border-black/10 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      {/* Retailer */}
-      <div className="text-[11px] text-black/50 uppercase tracking-wide truncate">
-        {plan.retailer}
+      {/* Retailer logo (fallback to name if no logo) */}
+      <div className="flex items-center gap-1.5 text-[11px] text-black/50 uppercase tracking-wide">
+        {plan.retailerLogo ? (
+          <img
+            src={plan.retailerLogo}
+            alt={plan.retailer}
+            className="h-3.5 w-auto max-w-[50px] object-contain"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        ) : (
+          <span className="truncate">{plan.retailer}</span>
+        )}
       </div>
 
       {/* Plan name */}
       <div className="text-sm font-medium text-black mt-1 line-clamp-2 leading-snug">
         {plan.name}
       </div>
+
+      {/* Utility indicator */}
+      {plan.utility && (
+        <div className="text-[10px] text-black/40 mt-0.5">{plan.utility}</div>
+      )}
 
       {/* Rate - hero metric */}
       <div className="mt-3">
@@ -45,9 +59,9 @@ function PlanCard({ plan, formatCents, formatDollars }) {
       )}
 
       {/* CTA */}
-      {plan.signupUrl && (
+      {(plan.signupUrl || plan.retailerWebsite) && (
         <a
-          href={plan.signupUrl}
+          href={plan.signupUrl || plan.retailerWebsite}
           target="_blank"
           rel="noreferrer"
           className="mt-4 inline-flex items-center justify-center w-full rounded-full bg-[#183a51] text-white px-3 py-2 text-xs font-medium hover:opacity-90 transition"

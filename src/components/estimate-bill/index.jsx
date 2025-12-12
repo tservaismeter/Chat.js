@@ -47,8 +47,16 @@ function App() {
                   <div className="font-medium text-black">
                     {plan.name}
                   </div>
-                  <div className="text-sm text-black/60">
-                    {plan.retailer}
+                  <div className="flex items-center gap-2 text-sm text-black/60">
+                    {plan.retailerLogo && (
+                      <img
+                        src={plan.retailerLogo}
+                        alt=""
+                        className="h-4 w-auto max-w-[60px] object-contain"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
+                    <span>{plan.retailer}</span>
                   </div>
                 </div>
                 {plan.renewablePercent > 0 && (
@@ -80,11 +88,11 @@ function App() {
                     <span>${formatDollars(breakdown.retailerBaseFee)}</span>
                   </div>
                   <div className="flex justify-between text-black/70">
-                    <span>TDU delivery</span>
+                    <span>{breakdown.utilityName || 'TDU'} delivery</span>
                     <span>${formatDollars(breakdown.tduDeliveryCharge)}</span>
                   </div>
                   <div className="flex justify-between text-black/70">
-                    <span>TDU base fee</span>
+                    <span>{breakdown.utilityName || 'TDU'} base fee</span>
                     <span>${formatDollars(breakdown.tduBaseFee)}</span>
                   </div>
                 </>
@@ -98,6 +106,19 @@ function App() {
             {/* Contract Info */}
             <div className="mt-4 pt-4 border-t border-black/5 text-xs text-black/50 text-center">
               {plan.termLengthMonths}-month contract{plan.etf != null && ` • $${plan.etf} ETF`}
+              {plan.eflUrl && (
+                <>
+                  {' • '}
+                  <a
+                    href={plan.eflUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    View EFL
+                  </a>
+                </>
+              )}
             </div>
 
             {/* Sign Up Link */}

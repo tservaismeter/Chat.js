@@ -80,7 +80,18 @@ function App() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs text-black/50 uppercase tracking-wide mb-1">
+                      {plan.retailerLogo && (
+                        <img
+                          src={plan.retailerLogo}
+                          alt=""
+                          className="h-4 w-auto max-w-[80px] object-contain"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      )}
                       <span>{plan.retailer || "Unknown retailer"}</span>
+                      {plan.utility && (
+                        <span className="text-black/40 normal-case">• {plan.utility}</span>
+                      )}
                       {plan.renewablePercent > 0 && (
                         <span className="text-[#047857] bg-[#ECFDF5] px-2 py-0.5 rounded-full normal-case text-[11px] font-medium">
                           {plan.renewablePercent}% Renewable
@@ -117,8 +128,8 @@ function App() {
                       </div>
                     )}
                   </div>
-                  {plan.signupUrl && (
-                    <div className="sm:w-32">
+                  <div className="sm:w-32 flex flex-col gap-1">
+                    {plan.signupUrl && (
                       <a
                         href={plan.signupUrl}
                         target="_blank"
@@ -127,8 +138,18 @@ function App() {
                       >
                         Sign up
                       </a>
-                    </div>
-                  )}
+                    )}
+                    {plan.eflUrl && (
+                      <a
+                        href={plan.eflUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-600 hover:underline text-center"
+                      >
+                        View EFL
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             );
