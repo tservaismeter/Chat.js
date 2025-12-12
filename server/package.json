@@ -5,7 +5,7 @@
   "private": true,
   "description": "Example MCP server that exposes the Pizzaz demo tools using the official TypeScript SDK.",
   "scripts": {
-    "start": "tsx --env-file=.env src/server.ts",
+    "start": "tsx src/server.ts",
     "dev": "tsx --watch --env-file=.env src/server.ts"
   },
   "dependencies": {
