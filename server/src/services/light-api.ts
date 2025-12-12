@@ -2,7 +2,7 @@
  * Light API service - handles zipcode to utility lookups
  */
 
-const LIGHT_API_URL = process.env.LIGHT_API_URL ?? "https://api.light.energy";
+const LIGHT_API_URL = process.env.LIGHT_API_URL ?? "https://api.light.dev";
 const LIGHT_API_KEY = process.env.LIGHT_API_KEY;
 
 interface LightUtility {
@@ -15,18 +15,17 @@ interface EligibilityResponse {
   utilities: LightUtility[];
 }
 
-// Map Light API names to Supabase utility codes
+// Map Light API names to Supabase utility codes (must match utilities.code in database)
 const UTILITY_NAME_MAP: Record<string, string> = {
-  "ONCOR": "oncor",
-  "CENTERPOINT": "centerpoint",
-  "TNMP": "tnmp",
-  "AEP CENTRAL": "aep_central",
-  "AEP NORTH": "aep_north",
-  "LUBBOCK POWER & LIGHT": "lubbock",
-  // Add variations as discovered
+  "ONCOR": "ONCOR",
+  "CENTERPOINT": "CNP",
+  "TNMP": "TNMP",
+  "AEP CENTRAL": "AEP_CENTRAL",
+  "AEP NORTH": "AEP_NORTH",
+  "LUBBOCK POWER & LIGHT": "LPPL",
 };
 
-const DEFAULT_UTILITY_CODE = "oncor";
+const DEFAULT_UTILITY_CODE = "ONCOR";
 
 /**
  * Look up the utility for a given postal code using Light API.

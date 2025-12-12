@@ -114,10 +114,23 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
     utility:utilities(id, code, name)
   `);
 
-  // Always filter by utility (never show mixed utilities)
-  if (utilityInfo) {
-    query = query.eq("utility_id", utilityInfo.id);
+  // If we couldn't determine the utility, return empty results instead of all plans
+  if (!utilityInfo) {
+    console.error(`No utility found for code: ${utilityCode}`);
+    return {
+      criteria: {
+        zipCode: criteria.zipCode,
+        usageKwh,
+        termMonths: criteria.termMonths ?? null,
+        renewableOnly: criteria.renewableOnly ?? false,
+      },
+      utility: undefined,
+      plans: [],
+    };
   }
+
+  // Always filter by utility (never show mixed utilities)
+  query = query.eq("utility_id", utilityInfo.id);
 
   // Apply filters
   if (criteria.termMonths) {
