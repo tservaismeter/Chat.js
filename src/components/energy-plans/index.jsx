@@ -89,8 +89,10 @@ function App() {
                         />
                       )}
                       <span>{plan.retailer || "Unknown retailer"}</span>
-                      {plan.utility && (
-                        <span className="text-black/40 normal-case">• {plan.utility}</span>
+                      {plan.googleRating && (
+                        <span className="text-black/60 normal-case flex items-center gap-1">
+                          • <span className="text-amber-500">★</span> {plan.googleRating}
+                        </span>
                       )}
                       {plan.renewablePercent > 0 && (
                         <span className="text-[#047857] bg-[#ECFDF5] px-2 py-0.5 rounded-full normal-case text-[11px] font-medium">

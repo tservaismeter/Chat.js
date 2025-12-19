@@ -15,14 +15,15 @@ interface EligibilityResponse {
   utilities: LightUtility[];
 }
 
-// Map Light API names to Supabase utility codes (must match utilities.code in database)
+// Map Light API utility names to Supabase utility codes
+// The API returns the name field which we uppercase and look up here
 const UTILITY_NAME_MAP: Record<string, string> = {
   "ONCOR": "ONCOR",
   "CENTERPOINT": "CNP",
+  "AEP_CENTRAL": "AEP_CENTRAL",
+  "AEP_NORTH": "AEP_NORTH",
   "TNMP": "TNMP",
-  "AEP CENTRAL": "AEP_CENTRAL",
-  "AEP NORTH": "AEP_NORTH",
-  "LUBBOCK POWER & LIGHT": "LPPL",
+  "LUBBOCK": "LPPL",
 };
 
 const DEFAULT_UTILITY_CODE = "ONCOR";
@@ -33,7 +34,7 @@ const DEFAULT_UTILITY_CODE = "ONCOR";
  */
 export async function getUtilityForZipcode(postalCode: string): Promise<string> {
   if (!LIGHT_API_KEY) {
-    console.warn("LIGHT_API_KEY not set, defaulting to Oncor");
+    console.warn("[Light API] LIGHT_API_KEY not set, defaulting to Oncor");
     return DEFAULT_UTILITY_CODE;
   }
 
@@ -48,14 +49,14 @@ export async function getUtilityForZipcode(postalCode: string): Promise<string> 
     });
 
     if (!response.ok) {
-      console.error(`Light API error: ${response.status}, defaulting to Oncor`);
+      console.error(`[Light API] Error: ${response.status}, defaulting to Oncor`);
       return DEFAULT_UTILITY_CODE;
     }
 
     const data: EligibilityResponse = await response.json();
 
     if (!data.utilities?.length) {
-      console.warn(`No utilities for ${postalCode}, defaulting to Oncor`);
+      console.warn(`[Light API] No utilities for ${postalCode}, defaulting to Oncor`);
       return DEFAULT_UTILITY_CODE;
     }
 
@@ -64,13 +65,13 @@ export async function getUtilityForZipcode(postalCode: string): Promise<string> 
     const utilityCode = UTILITY_NAME_MAP[primaryName];
 
     if (!utilityCode) {
-      console.warn(`Unknown utility "${primaryName}", defaulting to Oncor`);
+      console.warn(`[Light API] Unknown utility "${primaryName}", defaulting to Oncor`);
       return DEFAULT_UTILITY_CODE;
     }
 
     return utilityCode;
   } catch (err) {
-    console.error("Light API request failed, defaulting to Oncor:", err);
+    console.error("[Light API] Request failed, defaulting to Oncor:", err);
     return DEFAULT_UTILITY_CODE;
   }
 }

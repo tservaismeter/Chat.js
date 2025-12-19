@@ -214,36 +214,45 @@ export class McpWidgetServer {
     server.setRequestHandler(
       CallToolRequestSchema,
       async (request: CallToolRequest) => {
-        const widgetMeta = widgetsByComponent.get(request.params.name);
+        console.log(`[MCP] CallTool: ${request.params.name}`, request.params.arguments);
 
-        if (!widgetMeta) {
-          throw new Error(`Unknown tool: ${request.params.name}`);
+        try {
+          const widgetMeta = widgetsByComponent.get(request.params.name);
+
+          if (!widgetMeta) {
+            throw new Error(`Unknown tool: ${request.params.name}`);
+          }
+
+          const widget = widgetMeta.definition;
+
+          // Validate and parse input using schema
+          const args = widget.schema.parse(request.params.arguments ?? {});
+
+          // Execute user-defined handler
+          const result = await widget.handler(args);
+
+          console.log(`[MCP] CallTool result:`, { text: result.text, planCount: result.data?.plans?.length });
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: result.text
+              }
+            ],
+            structuredContent: result.data,
+            _meta: generateWidgetMeta(
+              widget.component,
+              widget.title,
+              widget.meta?.invoking,
+              widget.meta?.invoked,
+              widget.meta?.widgetDescription
+            )
+          };
+        } catch (error) {
+          console.error(`[MCP] CallTool ERROR:`, error);
+          throw error;
         }
-
-        const widget = widgetMeta.definition;
-
-        // Validate and parse input using schema
-        const args = widget.schema.parse(request.params.arguments ?? {});
-
-        // Execute user-defined handler
-        const result = await widget.handler(args);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: result.text
-            }
-          ],
-          structuredContent: result.data,
-          _meta: generateWidgetMeta(
-            widget.component,
-            widget.title,
-            widget.meta?.invoking,
-            widget.meta?.invoked,
-            widget.meta?.widgetDescription
-          )
-        };
       }
     );
 
@@ -327,6 +336,9 @@ export class McpWidgetServer {
     const assetsDir = this.assetsDir;
 
     const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+      // Log ALL incoming requests
+      console.log(`[HTTP] ${req.method} ${req.url}`);
+
       if (!req.url) {
         res.writeHead(400).end("Missing URL");
         return;

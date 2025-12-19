@@ -31,12 +31,14 @@ const widgets = [
     schema: z.object({
       zipCode: z.string().describe("Target Texas ZIP code for available plans."),
       usageKwh: z
+        .coerce
         .number()
         .min(250)
         .max(5000)
         .optional()
         .describe("Estimated monthly usage in kWh (defaults to 1000 if not provided)."),
       termMonths: z
+        .coerce
         .number()
         .int()
         .positive()
@@ -76,12 +78,14 @@ const widgets = [
     schema: z.object({
       zipCode: z.string().describe("Texas ZIP code for available plans"),
       usageKwh: z
+        .coerce
         .number()
         .min(250)
         .max(5000)
         .optional()
         .describe("Estimated monthly usage in kWh (defaults to 1000)"),
       termMonths: z
+        .coerce
         .number()
         .int()
         .positive()
@@ -121,6 +125,7 @@ const widgets = [
     schema: z.object({
       planId: z.string().describe("Plan identifier (e.g., 'lonestar-saver12', 'bluebonnet-flexgreen24')"),
       usageKwh: z
+        .coerce
         .number()
         .min(100)
         .max(10000)

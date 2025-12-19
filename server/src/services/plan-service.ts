@@ -11,49 +11,12 @@ import type {
   PlansResult,
   EstimateResult,
   BillBreakdown,
-  UtilityFee,
   FrontendPlan,
 } from "../types/index.js";
 
-// Default TDU fees (fallback if utility_fees lookup fails)
-const DEFAULT_TDU_FEES: UtilityFee = {
-  utility_id: 0,
-  fixed_monthly: 4.23,
-  per_kwh: 0.056,
-};
-
-/**
- * Fetch current utility fees from database
- * Returns a map of utility_id -> fees (most recent non-expired)
- */
-async function getUtilityFees(): Promise<Map<number, UtilityFee>> {
-  const { data, error } = await supabase
-    .from("utility_fees")
-    .select("utility_id, fixed_monthly, per_kwh")
-    .or("expires_at.is.null,expires_at.gt.now()")
-    .order("effective_date", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching utility fees:", error);
-    return new Map();
-  }
-
-  // Return map of utility_id -> most recent fees
-  const feeMap = new Map<number, UtilityFee>();
-  for (const fee of data || []) {
-    if (!feeMap.has(fee.utility_id)) {
-      feeMap.set(fee.utility_id, {
-        utility_id: fee.utility_id,
-        fixed_monthly: Number(fee.fixed_monthly),
-        per_kwh: Number(fee.per_kwh),
-      });
-    }
-  }
-  return feeMap;
-}
-
 /**
  * Transform database plan to frontend-facing format (camelCase)
+ * Uses the pre-calculated effectiveRate and monthlyEstimate from the plan
  */
 function transformToFrontendPlan(
   plan: EnergyPlanWithEstimate
@@ -68,27 +31,50 @@ function transformToFrontendPlan(
     etf: plan.etf ? Number(plan.etf) : null,
     termLengthMonths: plan.term_length_months,
     baseFee: Number(plan.base_fee),
-    energyRate: Number(plan.energy_rate) * 100, // Convert to cents/kWh for display
+    energyRate: (plan.effectiveRate ?? Number(plan.kwh1000)) * 100, // cents/kWh based on usage
     renewablePercent: plan.renewable_percent,
     utility: plan.utility?.name || null,
     utilityCode: plan.utility?.code || null,
     eflUrl: plan.efl_url,
     monthlyEstimate: plan.monthlyEstimate,
+    googleRating: plan.retailer?.google_rating ?? null,
+    googleReviewsUrl: plan.retailer?.google_reviews_url ?? null,
   };
 }
 
 /**
- * Calculate estimated monthly bill for a plan with utility-specific TDU fees
+ * Get the effective rate per kWh based on usage level.
+ * Interpolates between kwh500, kwh1000, and kwh2000 rate buckets.
+ */
+export function getEffectiveRate(plan: EnergyPlan, usageKwh: number): number {
+  const rate500 = Number(plan.kwh500) || Number(plan.kwh1000);
+  const rate1000 = Number(plan.kwh1000);
+  const rate2000 = Number(plan.kwh2000) || Number(plan.kwh1000);
+
+  if (usageKwh <= 500) {
+    return rate500;
+  } else if (usageKwh <= 1000) {
+    // Interpolate between 500 and 1000
+    const t = (usageKwh - 500) / 500;
+    return rate500 + t * (rate1000 - rate500);
+  } else if (usageKwh <= 2000) {
+    // Interpolate between 1000 and 2000
+    const t = (usageKwh - 1000) / 1000;
+    return rate1000 + t * (rate2000 - rate1000);
+  } else {
+    return rate2000;
+  }
+}
+
+/**
+ * Calculate estimated monthly bill for a plan
+ * Uses interpolated rate based on usage level
  */
 export function calculateEstimate(
   plan: EnergyPlan,
-  usageKwh: number,
-  tduFees: UtilityFee
+  usageKwh: number
 ): number {
-  const energyCost = usageKwh * Number(plan.energy_rate);
-  const tduCost = usageKwh * tduFees.per_kwh;
-  const fees = Number(plan.base_fee) + tduFees.fixed_monthly;
-  return energyCost + tduCost + fees;
+  return usageKwh * getEffectiveRate(plan, usageKwh);
 }
 
 /**
@@ -110,7 +96,7 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   // Fetch plans with retailer and utility data via JOINs
   let query = supabase.from("plans").select(`
     *,
-    retailer:retailers(id, name, puct_number, logo_url, website, phone),
+    retailer:retailers(id, name, puct_number, logo_url, website, phone, google_rating, google_reviews_url),
     utility:utilities(id, code, name)
   `);
 
@@ -132,44 +118,79 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   // Always filter by utility (never show mixed utilities)
   query = query.eq("utility_id", utilityInfo.id);
 
-  // Apply filters
-  if (criteria.termMonths) {
-    query = query.eq("term_length_months", criteria.termMonths);
-  }
+  // Apply filters - default to 12 month plans unless specified
+  const termMonths = criteria.termMonths ?? 12;
+  query = query.eq("term_length_months", termMonths);
   if (criteria.renewableOnly) {
     query = query.eq("renewable_percent", 100);
   }
 
-  // Fetch plans and utility fees in parallel
-  const [plansResult, utilityFees] = await Promise.all([
-    query,
-    getUtilityFees(),
-  ]);
+  // Order by kwh1000 rate (cheapest first) - fetch all matching plans to ensure priority retailers are included
+  query = query.order("kwh1000", { ascending: true });
+
+  // Fetch plans
+  const plansResult = await query;
 
   if (plansResult.error) {
     console.error("Error fetching plans:", plansResult.error);
     throw new Error(`Failed to fetch plans: ${plansResult.error.message}`);
   }
 
-  // Calculate estimates using utility-specific TDU fees and sort by energy rate
+  // Calculate effective rates and estimates based on user's usage level
   const plansWithEstimates: EnergyPlanWithEstimate[] = (plansResult.data || [])
-    .map((plan: EnergyPlan) => {
-      const fees = utilityFees.get(plan.utility_id ?? 0) || DEFAULT_TDU_FEES;
-      return {
-        ...plan,
-        monthlyEstimate: calculateEstimate(plan, usageKwh, fees),
-      };
-    })
-    .sort((a, b) => Number(a.energy_rate) - Number(b.energy_rate));
+    .map((plan: EnergyPlan) => ({
+      ...plan,
+      effectiveRate: getEffectiveRate(plan, usageKwh),
+      monthlyEstimate: calculateEstimate(plan, usageKwh),
+    }))
+    // Sort by effective rate (interpolated based on usage)
+    .sort((a, b) => a.effectiveRate - b.effectiveRate);
+
+  // Priority retailers - always show at least 1 plan from each (if available)
+  const PRIORITY_RETAILERS = ["Reliant", "TXU Energy"];
+
+  // Separate priority retailer plans from others
+  const priorityPlans: EnergyPlanWithEstimate[] = [];
+  const otherPlans: EnergyPlanWithEstimate[] = [];
+
+  for (const plan of plansWithEstimates) {
+    const retailerName = plan.retailer?.name || "";
+    const isPriority = PRIORITY_RETAILERS.some(pr =>
+      retailerName.toLowerCase().includes(pr.toLowerCase())
+    );
+
+    if (isPriority) {
+      // Only keep cheapest plan per priority retailer (first one since already sorted)
+      const existing = priorityPlans.find(p =>
+        p.retailer?.name === plan.retailer?.name
+      );
+      if (!existing) {
+        priorityPlans.push(plan);
+      }
+    } else {
+      otherPlans.push(plan);
+    }
+  }
+
+  // Combine: priority plans + fill remaining slots with cheapest others
+  const maxPlans = 6;
+  const remainingSlots = Math.max(0, maxPlans - priorityPlans.length);
+  const selectedPlans = [
+    ...priorityPlans,
+    ...otherPlans.slice(0, remainingSlots)
+  ];
+
+  // Sort final selection by effective rate (interpolated based on usage)
+  selectedPlans.sort((a, b) => a.effectiveRate - b.effectiveRate);
 
   // Transform to frontend format
-  const frontendPlans = plansWithEstimates.map(transformToFrontendPlan);
+  const frontendPlans = selectedPlans.map(transformToFrontendPlan);
 
   return {
     criteria: {
       zipCode: criteria.zipCode,
       usageKwh,
-      termMonths: criteria.termMonths ?? null,
+      termMonths,
       renewableOnly: criteria.renewableOnly ?? false,
     },
     utility: utilityInfo ? { code: utilityInfo.code, name: utilityInfo.name } : undefined,
@@ -187,7 +208,7 @@ export async function getPlanById(
     .from("plans")
     .select(`
       *,
-      retailer:retailers(id, name, puct_number, logo_url, website, phone),
+      retailer:retailers(id, name, puct_number, logo_url, website, phone, google_rating, google_reviews_url),
       utility:utilities(id, code, name)
     `)
     .eq("id", planId)
@@ -220,38 +241,35 @@ export async function getAllPlanIds(): Promise<string[]> {
 }
 
 /**
- * Calculate detailed bill estimate for a specific plan with utility-specific TDU fees
+ * Calculate detailed bill estimate for a specific plan
+ * Uses interpolated rate based on usage level
  */
 export async function getEstimate(
   planId: string,
   usageKwh: number
 ): Promise<EstimateResult | null> {
-  const [plan, utilityFees] = await Promise.all([
-    getPlanById(planId),
-    getUtilityFees(),
-  ]);
+  const plan = await getPlanById(planId);
 
   if (!plan) {
     return null;
   }
 
-  const fees = utilityFees.get(plan.utility_id ?? 0) || DEFAULT_TDU_FEES;
+  const effectiveRate = getEffectiveRate(plan, usageKwh);
+  const estimate = usageKwh * effectiveRate;
 
-  const energyCharge = usageKwh * Number(plan.energy_rate);
-  const tduDeliveryCharge = usageKwh * fees.per_kwh;
-  const estimate = energyCharge + tduDeliveryCharge + Number(plan.base_fee) + fees.fixed_monthly;
-
+  // Breakdown is simplified since rate is all-in
   const breakdown: BillBreakdown = {
-    energyCharge,
-    retailerBaseFee: Number(plan.base_fee),
-    tduDeliveryCharge,
-    tduBaseFee: fees.fixed_monthly,
+    energyCharge: estimate,
+    retailerBaseFee: 0,
+    tduDeliveryCharge: 0,
+    tduBaseFee: 0,
     utilityName: plan.utility?.name,
   };
 
   // Transform plan to frontend format and include monthlyEstimate
   const planWithEstimate: EnergyPlanWithEstimate = {
     ...plan,
+    effectiveRate,
     monthlyEstimate: estimate,
   };
 

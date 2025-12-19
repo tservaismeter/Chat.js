@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Power to Choose Importer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-2">Power to Choose Importer</h1>
+    <p class="text-gray-600 mb-8">Import electricity plans from Power to Choose CSV exports</p>
+
+    <!-- Upload Section -->
+    <div id="upload-section" class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Upload CSV</h2>
+      <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+        <p class="text-gray-600 mb-4">Select a Power to Choose CSV file:</p>
+        <input type="file" id="file-input" accept=".csv" />
+        <p class="text-sm text-gray-400 mt-4">Download from powertochoose.org → Compare Plans → Export</p>
+      </div>
+      <div id="file-info" class="hidden mt-4 text-sm text-gray-600"></div>
+    </div>
+
+    <!-- Filters Section -->
+    <div id="filters-section" class="hidden bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Filters</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="filter-english" checked class="rounded" />
+          <span>English only</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="filter-no-prepaid" checked class="rounded" />
+          <span>Exclude prepaid</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="filter-fixed" checked class="rounded" />
+          <span>Fixed rate only</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="filter-no-tou" checked class="rounded" />
+          <span>Exclude TOU</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="filter-no-min-usage" checked class="rounded" />
+          <span>No min usage fees</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="filter-no-special-equipment" checked class="rounded" />
+          <span>No thermostat/EV</span>
+        </label>
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Utilities</label>
+        <div id="utility-filters" class="flex flex-wrap gap-2"></div>
+      </div>
+      <button id="apply-filters" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Apply Filters
+      </button>
+    </div>
+
+    <!-- Preview Section -->
+    <div id="preview-section" class="hidden bg-white rounded-lg shadow p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-4">
+          <h2 class="text-xl font-semibold">Preview <span id="plan-count" class="text-gray-500 font-normal"></span></h2>
+          <span id="selected-count" class="text-gray-600 text-sm"></span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex gap-2">
+            <button id="select-all" class="text-blue-600 hover:underline text-sm">Select All</button>
+            <button id="select-none" class="text-blue-600 hover:underline text-sm">Select None</button>
+          </div>
+          <button id="import-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50">
+            Import Selected
+          </button>
+        </div>
+      </div>
+      <div id="import-progress" class="hidden mb-4">
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="progress-bar" class="bg-green-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+        <p id="progress-text" class="text-sm text-gray-600 mt-2"></p>
+      </div>
+      <div id="import-result" class="hidden mb-4 p-4 rounded"></div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-2 py-2 text-left"><input type="checkbox" id="toggle-all" /></th>
+              <th class="px-2 py-2 text-left">Utility</th>
+              <th class="px-2 py-2 text-left">Retailer</th>
+              <th class="px-2 py-2 text-left">Plan</th>
+              <th class="px-2 py-2 text-left">Term</th>
+              <th class="px-2 py-2 text-right">500 kWh</th>
+              <th class="px-2 py-2 text-right">1000 kWh</th>
+              <th class="px-2 py-2 text-right">2000 kWh</th>
+              <th class="px-2 py-2 text-right">ETF</th>
+              <th class="px-2 py-2 text-right">Renew %</th>
+              <th class="px-2 py-2 text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody id="preview-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Set up file input handler immediately, before anything else can fail
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('file-input').addEventListener('change', function(e) {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+      });
+    });
+
+    const SUPABASE_URL = 'https://amlbrptgggmwdwdxltlj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtbGJycHRnZ2dtd2R3ZHhsdGxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNDQxMjAsImV4cCI6MjA1OTcyMDEyMH0.x8rJBcqF9EcX7Ja1npxIXDmsvUJ3wQwD-gVvHDI7Q2A';
+
+    let supabaseClient;
+    try {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch (err) {
+      console.error('Supabase failed to load:', err);
+    }
+
+    // Retailer name mapping from PTC (ALL CAPS) to our canonical names (Title Case)
+    const RETAILER_MAP = {
+      'CHAMPION ENERGY SERVICES LLC': 'Champion Energy',
+      'AMBIT ENERGY': 'Ambit Energy',
+      'AMIGO ENERGY': 'Amigo Energy',
+      'DIRECT ENERGY': 'Direct Energy',
+      'FRONTIER UTILITIES': 'Frontier Utilities',
+      'GEXA ENERGY': 'Gexa Energy',
+      'GREEN MOUNTAIN ENERGY COMPANY': 'Green Mountain Energy',
+      'JUST ENERGY': 'Just Energy',
+      'OCTOPUS ENERGY LLC': 'Octopus Energy',
+      'RELIANT': 'Reliant Energy',
+      'RHYTHM': 'Rhythm Energy',
+      'TXU ENERGY': 'TXU Energy',
+      'VARSITY ENERGY LLC': 'Varsity Energy',
+      'AP GAS & ELECTRIC (TX) LLC': 'AP Gas & Electric',
+      'BRANCH ENERGY (TEXAS) LLC': 'Branch Energy',
+      'CONSTELLATION NEWENERGY INC': 'Constellation Energy',
+      'GOOD CHARLIE & CO LLC': 'Good Charlie',
+      'INFUSE ENERGY': 'Infuse Energy',
+      'IRONHORSE POWER SERVICES LLC': 'Ironhorse Power',
+      'NEXTVOLT TEXAS LLC': 'NextVolt',
+      'PAYLESS POWER': 'Payless Power',
+      'REVOLUTION ENERGY LLC': 'Revolution Energy',
+      'SFE ENERGY TEXAS INC': 'SFE Energy',
+      'SOUTHERN FEDERAL POWER LLC': 'Southern Federal Power',
+      'SPARK ENERGY LLC': 'Spark Energy',
+      'TARA ENERGY': 'Tara Energy',
+      'TRIEAGLE ENERGY LP': 'TriEagle Energy',
+      'TRUE POWER': 'True Power',
+      'CIRRO ENERGY': 'Cirro Energy',
+      'AE TEXAS': 'AE Texas',
+    };
+
+    // Format phone to E.164 (+1XXXXXXXXXX)
+    function formatPhone(phone) {
+      if (!phone) return null;
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length === 10) return '+1' + digits;
+      if (digits.length === 11 && digits[0] === '1') return '+' + digits;
+      return null;
+    }
+
+    // Words that should stay uppercase
+    const UPPERCASE_WORDS = ['BKV', 'SFE', 'TXU', 'EV', 'AP', 'AE'];
+
+    // Convert to Title Case (preserving certain acronyms)
+    function toTitleCase(str) {
+      return str.toLowerCase().replace(/\b\w+/g, word => {
+        const upper = word.toUpperCase();
+        if (UPPERCASE_WORDS.includes(upper)) return upper;
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      });
+    }
+
+    // Normalize retailer name
+    function normalizeRetailerName(name) {
+      const trimmed = name.trim();
+      return RETAILER_MAP[trimmed] || RETAILER_MAP[trimmed.toUpperCase()] || toTitleCase(trimmed);
+    }
+
+    // Clean website URL - strip everything to just https://domain.com
+    function cleanWebsiteUrl(url) {
+      if (!url) return null;
+      try {
+        // Add protocol if missing
+        let cleanUrl = url.trim();
+        if (!cleanUrl.match(/^https?:\/\//i)) {
+          cleanUrl = 'https://' + cleanUrl;
+        }
+        // Force https
+        cleanUrl = cleanUrl.replace(/^http:\/\//i, 'https://');
+
+        const parsed = new URL(cleanUrl);
+        // Return just the origin (no path, no query params)
+        return parsed.origin;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Retailer name prefixes to strip from plan names
+    const RETAILER_PREFIXES = [
+      'SoFed', 'Reliant', 'Gexa', 'TXU', 'Frontier', 'Chariot', 'Octopus', 'Octo',
+      'Green Mountain', 'Champion', 'Champ', 'Direct Energy', 'Ambit', 'Amigo',
+      'Just Energy', 'Think', 'Rhythm', 'Cirro', 'Discount', 'Spark', 'Tara',
+      'TriEagle', 'Varsity', 'Budget', 'Companion', 'Ranchero', 'SFE', 'AP',
+      'CleanSky', 'Good Charlie', 'Infuse', 'Ironhorse', 'NextVolt', 'OhmConnect',
+      'Payless', 'Revolution', 'Southern Federal', 'True Power', 'BKV', 'Branch',
+      'Constellation', 'David Energy', 'Energy Texas', 'AE Texas', 'Almika',
+      'Atlantex', 'Base Power', 'Tesla'
+    ];
+
+    // Normalize plan name - strip term numbers, retailer prefixes, and marketing fluff
+    function normalizePlanName(name) {
+      let cleaned = name.trim();
+      const original = cleaned;
+
+      // Special case: preserve "Octo Green" for Octopus Energy plans
+      if (/^Octo\s+Green/i.test(cleaned)) {
+        return 'Octo Green';
+      }
+
+      // Remove retailer name prefixes (case insensitive)
+      for (const prefix of RETAILER_PREFIXES) {
+        const regex = new RegExp(`^${prefix}\\s+`, 'i');
+        cleaned = cleaned.replace(regex, '');
+      }
+
+      // Remove trailing term numbers with various separators: "Plan 12", "Plan - 12", "Plan-12", "Plan 12 Month"
+      cleaned = cleaned.replace(/\s*[-–—]\s*\d+\s*(month|mo)?s?\s*$/i, '');
+      cleaned = cleaned.replace(/\s+\d+\s*(month|mo)?s?\s*$/i, '');
+
+      // Remove leading term numbers: "12 Month Plan" -> "Plan"
+      cleaned = cleaned.replace(/^\d+\s*(month|mo)s?\s+/i, '');
+
+      // Remove marketing taglines after dash: "Plan Name - Save Energy. Get Paid." -> "Plan Name"
+      cleaned = cleaned.replace(/\s*[-–—]\s*[A-Z][^-]*\.\s*[A-Z].*$/i, '');
+      cleaned = cleaned.replace(/\s*[-–—]\s*(New Customer Special|Save Energy|Get Paid|Postpaid).*$/i, '');
+
+      // Remove "Plan" suffix if it follows the name: "Reliant Power On 12 Plan" -> "Power On"
+      cleaned = cleaned.replace(/\s+Plan$/i, '');
+
+      // Remove standalone "Choice" suffix only when it follows a number: "Pollution Free e-Plus 12 Choice" -> "Pollution Free e-Plus"
+      // But keep "Eco Choice" as is
+      cleaned = cleaned.replace(/\s+\d+\s+Choice$/i, '');
+
+      // Clean up extra whitespace
+      cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+      // If we ended up with empty string or just "PTC", return something sensible
+      if (!cleaned || cleaned.toUpperCase() === 'PTC') {
+        const match = original.match(/^PTC\s+(\d+)\s*(month|mo)/i);
+        return match ? 'PTC' : (cleaned || original);
+      }
+
+      return cleaned;
+    }
+
+    // Utility name mapping from PTC to our codes
+    const UTILITY_MAP = {
+      // AEP variations
+      'AEP TEXAS CENTRAL': 'AEP_CENTRAL',
+      'AEP TEXAS NORTH': 'AEP_NORTH',
+      'AEP Texas Central': 'AEP_CENTRAL',
+      'AEP Texas North': 'AEP_NORTH',
+      // CenterPoint variations
+      'CENTERPOINT': 'CNP',
+      'CenterPoint': 'CNP',
+      'CENTERPOINT ENERGY': 'CNP',
+      'CENTERPOINT ENERGY HOUSTON ELECTRIC LLC': 'CNP',
+      'Centerpoint Energy Houston Electric LLC': 'CNP',
+      // Oncor variations
+      'ONCOR': 'ONCOR',
+      'Oncor': 'ONCOR',
+      'ONCOR ELECTRIC DELIVERY': 'ONCOR',
+      'ONCOR ELECTRIC DELIVERY COMPANY': 'ONCOR',
+      'Oncor Electric Delivery Company': 'ONCOR',
+      // TNMP variations
+      'TEXAS-NEW MEXICO POWER': 'TNMP',
+      'Texas-New Mexico Power': 'TNMP',
+      'TEXAS-NEW MEXICO POWER COMPANY': 'TNMP',
+      'Texas-New Mexico Power Company': 'TNMP',
+      'TNMP': 'TNMP',
+      // Lubbock variations
+      'LUBBOCK POWER & LIGHT': 'LPPL',
+      'Lubbock Power & Light': 'LPPL',
+      'LUBBOCK POWER & LIGHT SYSTEM': 'LPPL',
+      'Lubbock Power & Light System': 'LPPL',
+    };
+
+    let rawData = [];
+    let filteredData = [];
+    let utilities = [];
+    let retailers = [];
+    let existingPlans = new Set();
+
+    // File upload handling - must be defined first
+    function handleFile(file) {
+      console.log('handleFile called', file.name);
+      document.getElementById('file-info').textContent = `File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      document.getElementById('file-info').classList.remove('hidden');
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          console.log('Parse complete', results.data.length, 'rows');
+          rawData = results.data;
+          showFilters();
+          applyFilters();
+        }
+      });
+    }
+
+    window.handleFileSelect = function(input) {
+      console.log('handleFileSelect called', input.files);
+      if (input.files && input.files[0]) {
+        handleFile(input.files[0]);
+      }
+    }
+
+    // Initialize
+    async function init() {
+      try {
+        // Fetch utilities
+        const { data: utilData } = await supabaseClient.from('utilities').select('id, code, name');
+        utilities = utilData || [];
+
+        // Fetch existing retailers
+        const { data: retailerData } = await supabaseClient.from('retailers').select('id, name');
+        retailers = retailerData || [];
+
+        // Fetch existing plan IDs
+        const { data: planData } = await supabaseClient.from('plans').select('id');
+        existingPlans = new Set((planData || []).map(p => p.id));
+      } catch (err) {
+        console.error('Init error:', err);
+      }
+    }
+    init();
+
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-blue-500', 'bg-blue-50');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+
+    document.getElementById('file-input').addEventListener('change', (e) => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    function showFilters() {
+      document.getElementById('filters-section').classList.remove('hidden');
+
+      // Build utility filter checkboxes
+      const uniqueUtilities = [...new Set(rawData.map(r => r['[TduCompanyName]']))].filter(Boolean).sort();
+      const container = document.getElementById('utility-filters');
+      container.innerHTML = uniqueUtilities.map(u => {
+        const code = UTILITY_MAP[u] || u;
+        const known = utilities.find(ut => ut.code === code);
+        return `
+          <label class="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm ${known ? '' : 'opacity-50'}">
+            <input type="checkbox" class="utility-filter" value="${u}" ${known ? 'checked' : ''} />
+            <span>${u}</span>
+            ${known ? '' : '<span class="text-red-500">(unknown)</span>'}
+          </label>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('apply-filters').addEventListener('click', applyFilters);
+
+    // Also apply filters when checkboxes change
+    document.getElementById('filters-section').addEventListener('change', applyFilters);
+
+    function applyFilters() {
+      const englishOnly = document.getElementById('filter-english').checked;
+      const noPrepaid = document.getElementById('filter-no-prepaid').checked;
+      const fixedOnly = document.getElementById('filter-fixed').checked;
+      const noTOU = document.getElementById('filter-no-tou').checked;
+      const noMinUsage = document.getElementById('filter-no-min-usage').checked;
+      const noSpecialEquipment = document.getElementById('filter-no-special-equipment').checked;
+      const selectedUtilities = [...document.querySelectorAll('.utility-filter:checked')].map(cb => cb.value);
+
+      // Keywords for smart thermostat / EV plans
+      const specialEquipmentPattern = /thermostat|smart\s*home|ev\s|electric\s*vehicle|charger|charging|connected|nest|ecobee/i;
+
+      filteredData = rawData.filter(row => {
+        if (englishOnly && row['[Language]'] !== 'English') return false;
+        if (noPrepaid && row['[PrePaid]'] === 'True') return false;
+        if (fixedOnly && row['[Fixed]'] !== '1') return false;
+        if (noTOU && row['[TimeOfUse]'] === 'True') return false;
+        if (noMinUsage && row['[MinUsageFeesCredits]'] === 'TRUE') return false;
+        if (noSpecialEquipment && specialEquipmentPattern.test(row['[Product]'])) return false;
+        if (!selectedUtilities.includes(row['[TduCompanyName]'])) return false;
+        return true;
+      });
+
+      // Deduplicate by retailer+plan+utility+term
+      const seen = new Map();
+      filteredData = filteredData.filter(row => {
+        const key = `${row['[RepCompany]']}|${row['[Product]']}|${row['[TduCompanyName]']}|${row['[TermValue]']}`;
+        if (seen.has(key)) return false;
+        seen.set(key, true);
+        return true;
+      });
+
+      renderPreview();
+    }
+
+    function slugify(str) {
+      return str.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+
+    function generatePlanId(row) {
+      const utilityCode = UTILITY_MAP[row['[TduCompanyName]']] || row['[TduCompanyName]'];
+      const utility = utilities.find(u => u.code === utilityCode);
+      const utilityId = utility?.id || 0;
+      const term = row['[TermValue]'] || '0';
+      const retailer = slugify(normalizeRetailerName(row['[RepCompany]'] || ''));
+      return `${retailer}-${slugify(row['[Product]'])}-${utilityId}-${term}m`;
+    }
+
+    function renderPreview() {
+      document.getElementById('preview-section').classList.remove('hidden');
+
+      const tbody = document.getElementById('preview-body');
+      tbody.innerHTML = filteredData.map((row, idx) => {
+        const planId = generatePlanId(row);
+        const exists = existingPlans.has(planId);
+        const utilityCode = UTILITY_MAP[row['[TduCompanyName]']] || row['[TduCompanyName]'];
+        const utilityKnown = utilities.find(u => u.code === utilityCode);
+
+        const retailerName = normalizeRetailerName(row['[RepCompany]']);
+        const planName = normalizePlanName(row['[Product]']);
+
+        return `
+          <tr class="border-t ${utilityKnown ? '' : 'bg-red-50'}">
+            <td class="px-2 py-2"><input type="checkbox" class="plan-checkbox" data-idx="${idx}" ${utilityKnown ? 'checked' : 'disabled'} /></td>
+            <td class="px-2 py-2">${utilityCode}</td>
+            <td class="px-2 py-2">${retailerName}</td>
+            <td class="px-2 py-2 max-w-xs">
+              <div class="font-medium">${planName}</div>
+              <div class="text-xs text-gray-400 truncate" title="${row['[Product]']}">${row['[Product]']}</div>
+            </td>
+            <td class="px-2 py-2">${row['[TermValue]']}mo</td>
+            <td class="px-2 py-2 text-right">${(parseFloat(row['[kwh500]']) * 100).toFixed(1)}¢</td>
+            <td class="px-2 py-2 text-right">${(parseFloat(row['[kwh1000]']) * 100).toFixed(1)}¢</td>
+            <td class="px-2 py-2 text-right">${(parseFloat(row['[kwh2000]']) * 100).toFixed(1)}¢</td>
+            <td class="px-2 py-2 text-right">$${row['[CancelFee]'] || '0'}</td>
+            <td class="px-2 py-2 text-right">${row['[Renewable]']}%</td>
+            <td class="px-2 py-2">
+              ${!utilityKnown ? '<span class="text-red-600 text-xs">Unknown utility</span>' :
+                exists ? '<span class="text-yellow-600 text-xs">Update</span>' :
+                '<span class="text-green-600 text-xs">New</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      updateCounts();
+    }
+
+    function updateCounts() {
+      const total = filteredData.length;
+      const selected = document.querySelectorAll('.plan-checkbox:checked').length;
+      document.getElementById('plan-count').textContent = `(${total} plans)`;
+      document.getElementById('selected-count').textContent = `${selected} plans selected`;
+    }
+
+    document.getElementById('preview-body').addEventListener('change', updateCounts);
+
+    document.getElementById('toggle-all').addEventListener('change', (e) => {
+      document.querySelectorAll('.plan-checkbox:not(:disabled)').forEach(cb => cb.checked = e.target.checked);
+      updateCounts();
+    });
+
+    document.getElementById('select-all').addEventListener('click', () => {
+      document.querySelectorAll('.plan-checkbox:not(:disabled)').forEach(cb => cb.checked = true);
+      document.getElementById('toggle-all').checked = true;
+      updateCounts();
+    });
+
+    document.getElementById('select-none').addEventListener('click', () => {
+      document.querySelectorAll('.plan-checkbox').forEach(cb => cb.checked = false);
+      document.getElementById('toggle-all').checked = false;
+      updateCounts();
+    });
+
+    // Import
+    document.getElementById('import-btn').addEventListener('click', importPlans);
+
+    async function importPlans() {
+      const selectedIdxs = [...document.querySelectorAll('.plan-checkbox:checked')].map(cb => parseInt(cb.dataset.idx));
+      const toImport = selectedIdxs.map(idx => filteredData[idx]);
+
+      if (toImport.length === 0) {
+        alert('No plans selected');
+        return;
+      }
+
+      document.getElementById('import-btn').disabled = true;
+      document.getElementById('import-progress').classList.remove('hidden');
+      document.getElementById('import-result').classList.add('hidden');
+
+      const progressBar = document.getElementById('progress-bar');
+      const progressText = document.getElementById('progress-text');
+
+      let imported = 0;
+      let errors = [];
+
+      try {
+        // Step 0: Delete all existing plans
+        progressBar.style.width = '5%';
+        progressText.textContent = 'Clearing existing plans...';
+
+        const { error: deleteError } = await supabaseClient
+          .from('plans')
+          .delete()
+          .neq('id', ''); // Delete all rows
+
+        if (deleteError) {
+          throw new Error(`Failed to clear plans: ${deleteError.message}`);
+        }
+        existingPlans.clear();
+
+        // Step 1: Batch upsert all unique retailers (with normalized names and phones)
+        const uniqueRetailers = [...new Map(toImport.map(row => {
+          const rawName = row['[RepCompany]'].trim();
+          const name = normalizeRetailerName(rawName);
+          return [name.toLowerCase(), {
+            name,
+            website: cleanWebsiteUrl(row['[Website]']),
+            phone: formatPhone(row['[EnrollPhone]'])
+          }];
+        })).values()];
+
+        progressBar.style.width = '10%';
+        progressText.textContent = `Creating ${uniqueRetailers.length} retailers...`;
+
+        const { data: retailerData, error: retailerError } = await supabaseClient
+          .from('retailers')
+          .upsert(uniqueRetailers, { onConflict: 'name' })
+          .select('id, name');
+
+        if (retailerError) {
+          throw new Error(`Retailer batch error: ${retailerError.message}`);
+        }
+
+        // Build retailer lookup map
+        const retailerMap = new Map(retailerData.map(r => [r.name.toLowerCase(), r.id]));
+
+        progressBar.style.width = '20%';
+        progressText.textContent = 'Preparing plan data...';
+
+        // Step 2: Prepare all plan data
+        const planDataArray = toImport.map(row => {
+          const retailerName = normalizeRetailerName(row['[RepCompany]'].trim());
+          const retailerId = retailerMap.get(retailerName.toLowerCase());
+          const utilityCode = UTILITY_MAP[row['[TduCompanyName]']] || row['[TduCompanyName]'];
+          const utility = utilities.find(u => u.code === utilityCode);
+
+          if (!utility || !retailerId) return null;
+
+          return {
+            id: generatePlanId(row),
+            name: normalizePlanName(row['[Product]']),
+            retailer_id: retailerId,
+            utility_id: utility.id,
+            term_length_months: parseInt(row['[TermValue]']) || 0,
+            kwh500: parseFloat(row['[kwh500]']) || null,
+            kwh1000: parseFloat(row['[kwh1000]']) || null,
+            kwh2000: parseFloat(row['[kwh2000]']) || null,
+            etf: parseFloat(row['[CancelFee]']) || null,
+            renewable_percent: parseInt(row['[Renewable]']) || 0,
+            signup_url: row['[EnrollURL]'] || '',
+            efl_url: row['[FactsURL]'] || null,
+          };
+        }).filter(Boolean);
+
+        // Step 3: Batch upsert plans in chunks of 50
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < planDataArray.length; i += BATCH_SIZE) {
+          const batch = planDataArray.slice(i, i + BATCH_SIZE);
+          const progress = 20 + ((i + batch.length) / planDataArray.length * 80);
+          progressBar.style.width = `${progress.toFixed(0)}%`;
+          progressText.textContent = `Importing plans ${i + 1}-${Math.min(i + BATCH_SIZE, planDataArray.length)} of ${planDataArray.length}...`;
+
+          const { error } = await supabaseClient
+            .from('plans')
+            .upsert(batch, { onConflict: 'id' });
+
+          if (error) {
+            errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
+          } else {
+            imported += batch.length;
+            batch.forEach(p => existingPlans.add(p.id));
+          }
+        }
+      } catch (err) {
+        errors.push(err.message);
+      }
+
+      progressBar.style.width = '100%';
+      progressText.textContent = 'Complete!';
+
+      const resultDiv = document.getElementById('import-result');
+      resultDiv.classList.remove('hidden');
+
+      if (errors.length === 0) {
+        resultDiv.className = 'mb-4 p-4 rounded bg-green-50 text-green-800';
+        resultDiv.innerHTML = `<strong>Success!</strong> Imported ${imported} plans.`;
+      } else {
+        resultDiv.className = 'mb-4 p-4 rounded bg-yellow-50 text-yellow-800';
+        resultDiv.innerHTML = `
+          <strong>Imported ${imported} plans with ${errors.length} errors:</strong>
+          <ul class="mt-2 text-sm list-disc list-inside">
+            ${errors.slice(0, 10).map(e => `<li>${e}</li>`).join('')}
+            ${errors.length > 10 ? `<li>...and ${errors.length - 10} more</li>` : ''}
+          </ul>
+        `;
+      }
+
+      document.getElementById('import-btn').disabled = false;
+      renderPreview(); // Refresh status column
+    }
+  </script>
+</body>
+</html>

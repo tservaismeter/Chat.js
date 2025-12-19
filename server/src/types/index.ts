@@ -9,6 +9,8 @@ export interface Retailer {
   logo_url: string | null;
   website: string | null;
   phone: string | null;
+  google_rating: number | null;
+  google_reviews_url: string | null;
 }
 
 export interface Utility {
@@ -35,6 +37,9 @@ export interface EnergyPlan {
   utility_id: number | null;
   retailer_id: number | null;
   efl_url: string | null;
+  kwh500: number | null;
+  kwh1000: number | null;
+  kwh2000: number | null;
   created_at?: string;
   updated_at?: string;
   // Joined data from Supabase
@@ -44,6 +49,7 @@ export interface EnergyPlan {
 
 export interface EnergyPlanWithEstimate extends EnergyPlan {
   monthlyEstimate: number;
+  effectiveRate: number; // interpolated rate based on usage
 }
 
 // Frontend-facing type (camelCase for React components)
@@ -63,6 +69,8 @@ export interface FrontendPlan {
   utilityCode: string | null;
   eflUrl: string | null;
   monthlyEstimate: number;
+  googleRating: number | null;
+  googleReviewsUrl: string | null;
 }
 
 export interface PlanCriteria {
