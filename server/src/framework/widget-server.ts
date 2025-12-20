@@ -44,7 +44,7 @@ export class McpWidgetServer {
     
     // Generate asset hash from version (matches build-all.mts logic)
     const assetHash = generateAssetHash(config.version);
-    const frontendUrl = config.frontendUrl ?? "http://localhost:4444";
+    const frontendUrl = config.frontendUrl ?? "https://mcp.meterplan.com/assets";
     
     // Process widgets: auto-generate missing fields
     const processedWidgets = config.widgets.map(widget => {
