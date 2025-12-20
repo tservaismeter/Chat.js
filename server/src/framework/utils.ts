@@ -129,7 +129,10 @@ export function generateWidgetMeta(
   }
 
   if (csp) {
-    meta["openai/widgetCSP"] = csp;
+    meta["openai/widgetCSP"] = {
+      connectDomains: csp.connect_domains,
+      resourceDomains: csp.resource_domains
+    };
   }
 
   if (widgetDomain) {
