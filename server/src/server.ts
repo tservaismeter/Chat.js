@@ -23,7 +23,7 @@ const widgets = [
   {
     component: "get-plans",  // → src/components/get-plans/
     title: "Get Energy Plans",
-    description: "Use this when the user wants to find or compare electricity plans in Texas. Searches by ZIP code with optional filters for usage, contract length, renewable energy, and retailer.",
+    description: "Use this when the user wants to find or compare electricity plans in Texas. Searches by ZIP code with optional filters for usage, contract length, renewable energy, and retailer. Do not use for other states or utility services like gas or water.",
     schema: z.object({
       zipCode: z.string().describe("Texas ZIP code for available plans"),
       usageKwh: z
