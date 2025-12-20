@@ -52,7 +52,16 @@ function wrapEntryPlugin(
   };
 }
 
-fs.rmSync(outDir, { recursive: true, force: true });
+// Clean build outputs but preserve static assets like logos
+if (fs.existsSync(outDir)) {
+  for (const file of fs.readdirSync(outDir)) {
+    if (file !== 'logos') {
+      fs.rmSync(path.join(outDir, file), { recursive: true, force: true });
+    }
+  }
+} else {
+  fs.mkdirSync(outDir, { recursive: true });
+}
 
 for (const file of entries) {
   const name = path.basename(path.dirname(file));
