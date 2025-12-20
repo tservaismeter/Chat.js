@@ -68,6 +68,9 @@ export type WidgetDefinition<TSchema extends z.ZodType = z.ZodType> = {
     /** Hosts for static assets (images, fonts, scripts) */
     resource_domains?: string[];
   };
+
+  /** Unique domain identifier for widget (required for app submission) */
+  widgetDomain?: string;
 };
 
 /**

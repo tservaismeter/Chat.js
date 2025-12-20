@@ -92,7 +92,8 @@ export class McpWidgetServer {
         widget.meta?.invoking,
         widget.meta?.invoked,
         widget.meta?.widgetDescription,
-        widget.csp
+        widget.csp,
+        widget.widgetDomain
       )
     };
   }
@@ -113,7 +114,8 @@ export class McpWidgetServer {
         widget.meta?.invoking,
         widget.meta?.invoked,
         widget.meta?.widgetDescription,
-        widget.csp
+        widget.csp,
+        widget.widgetDomain
       )
     };
   }
@@ -134,7 +136,8 @@ export class McpWidgetServer {
         widget.meta?.invoking,
         widget.meta?.invoked,
         widget.meta?.widgetDescription,
-        widget.csp
+        widget.csp,
+        widget.widgetDomain
       )
     };
   }
@@ -208,7 +211,9 @@ export class McpWidgetServer {
                 widget.title,
                 widget.meta?.invoking,
                 widget.meta?.invoked,
-                widget.meta?.widgetDescription
+                widget.meta?.widgetDescription,
+                widget.csp,
+                widget.widgetDomain
               )
             }
           ]
@@ -260,7 +265,9 @@ export class McpWidgetServer {
               widget.title,
               widget.meta?.invoking,
               widget.meta?.invoked,
-              widget.meta?.widgetDescription
+              widget.meta?.widgetDescription,
+              widget.csp,
+              widget.widgetDomain
             )
           };
         } catch (error) {

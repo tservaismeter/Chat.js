@@ -85,8 +85,10 @@ const widgets = [
       openWorldHint: false
     },
     csp: {
+      connect_domains: ["https://mcp.meterplan.com"],
       resource_domains: ["https://mcp.meterplan.com"]
-    }
+    },
+    widgetDomain: "https://mcp.meterplan.com"
   }
 ];
 

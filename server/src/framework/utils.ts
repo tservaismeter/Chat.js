@@ -111,7 +111,8 @@ export function generateWidgetMeta(
   csp?: {
     connect_domains?: string[];
     resource_domains?: string[];
-  }
+  },
+  widgetDomain?: string
 ) {
   const templateUri = `ui://widget/${widgetId}.html`;
 
@@ -129,6 +130,10 @@ export function generateWidgetMeta(
 
   if (csp) {
     meta["openai/widgetCSP"] = csp;
+  }
+
+  if (widgetDomain) {
+    meta["openai/widgetDomain"] = widgetDomain;
   }
 
   return meta;
