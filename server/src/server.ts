@@ -86,7 +86,7 @@ const widgets = [
     },
     csp: {
       connect_domains: ["https://mcp.meterplan.com"],
-      resource_domains: ["https://mcp.meterplan.com"]
+      resource_domains: ["https://mcp.meterplan.com", "https://amlbrptgggmwdwdxltlj.supabase.co"]
     },
     widgetDomain: "https://mcp.meterplan.com"
   }
