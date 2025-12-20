@@ -129,7 +129,11 @@ export function generateWidgetMeta(
   }
 
   if (csp) {
+    // Send both snake_case (per docs) and camelCase (per sandbox code)
+    // to handle mismatch between OpenAI documentation and implementation
     meta["openai/widgetCSP"] = {
+      connect_domains: csp.connect_domains,
+      resource_domains: csp.resource_domains,
       connectDomains: csp.connect_domains,
       resourceDomains: csp.resource_domains
     };
