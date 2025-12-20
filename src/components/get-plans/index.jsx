@@ -46,17 +46,25 @@ function PlanCard({ plan, formatCents, formatDollars }) {
   return (
     <div className="min-w-[200px] max-w-[200px] flex-shrink-0 flex flex-col p-4 bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       {/* Retailer logo - fixed height for alignment */}
-      <div className="h-6 flex items-center text-[11px] text-black/50 dark:text-white/50 uppercase tracking-wide">
+      <div className="h-10 flex items-center text-[11px] text-black/50 dark:text-white/50 uppercase tracking-wide">
         {plan.retailerLogo ? (
           <img
             src={plan.retailerLogo}
             alt={plan.retailer}
-            className="h-6 w-auto max-w-[100px] object-contain dark:bg-white/90 dark:rounded dark:px-1.5 dark:py-0.5"
-            onError={(e) => { e.target.style.display = 'none'; }}
+            className="h-10 w-auto max-w-[140px] object-contain dark:bg-white/90 dark:rounded dark:px-1.5 dark:py-0.5"
+            onError={(e) => {
+              // Hide broken image and show fallback text
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
           />
-        ) : (
-          <span className="truncate">{plan.retailer}</span>
-        )}
+        ) : null}
+        <span
+          className="truncate"
+          style={{ display: plan.retailerLogo ? 'none' : 'block' }}
+        >
+          {plan.retailer}
+        </span>
       </div>
 
       {/* Plan name */}
@@ -139,7 +147,7 @@ function App() {
     emblaApi.on("reInit", update);
   }, [emblaApi]);
 
-  if (plans.length === 0) {
+  if (payload && plans.length === 0) {
     return (
       <div className="antialiased w-full text-black dark:text-white py-10 text-center text-black/60 dark:text-white/60">
         No plans available. Try a different ZIP or contract length.

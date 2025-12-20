@@ -77,7 +77,9 @@ export interface PlanCriteria {
   zipCode: string;
   usageKwh?: number;
   termMonths?: number;
+  minTermMonths?: number;
   renewableOnly?: boolean;
+  retailer?: string;
 }
 
 export interface PlansResult {
@@ -94,17 +96,3 @@ export interface PlansResult {
   plans: FrontendPlan[];
 }
 
-export interface BillBreakdown {
-  energyCharge: number;
-  retailerBaseFee: number;
-  tduDeliveryCharge: number;
-  tduBaseFee: number;
-  utilityName?: string;
-}
-
-export interface EstimateResult {
-  plan: FrontendPlan;
-  usageKwh: number;
-  estimate: number;
-  breakdown: BillBreakdown;
-}

@@ -67,6 +67,12 @@ export class McpWidgetServer {
     }));
 
     this.assetsDir = resolve(import.meta.dirname, "../../../assets");
+
+    // Debug: log generated schemas at startup
+    for (const meta of this.widgetMetas) {
+      const schema = zodToJsonSchema(meta.definition.schema);
+      console.log(`[MCP] Schema for ${meta.component}:`, JSON.stringify(schema, null, 2));
+    }
   }
 
   /**
@@ -147,7 +153,11 @@ export class McpWidgetServer {
     );
 
     // Create Tools, Resources, ResourceTemplates
-    const tools = this.widgetMetas.map(w => this.widgetToTool(w));
+    const tools = this.widgetMetas.map(w => {
+      const tool = this.widgetToTool(w);
+      console.log(`[MCP] Tool schema for ${tool.name}:`, JSON.stringify(tool.inputSchema, null, 2));
+      return tool;
+    });
     const resources = this.widgetMetas.map(w => this.widgetToResource(w));
     const resourceTemplates = this.widgetMetas.map(w => this.widgetToResourceTemplate(w));
 

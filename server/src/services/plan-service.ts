@@ -9,8 +9,6 @@ import type {
   EnergyPlanWithEstimate,
   PlanCriteria,
   PlansResult,
-  EstimateResult,
-  BillBreakdown,
   FrontendPlan,
 } from "../types/index.js";
 
@@ -118,9 +116,18 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   // Always filter by utility (never show mixed utilities)
   query = query.eq("utility_id", utilityInfo.id);
 
-  // Apply filters - default to 12 month plans unless specified
-  const termMonths = criteria.termMonths ?? 12;
-  query = query.eq("term_length_months", termMonths);
+  // Apply term length filter
+  if (criteria.termMonths) {
+    // Exact match
+    query = query.eq("term_length_months", criteria.termMonths);
+  } else if (criteria.minTermMonths) {
+    // Minimum term (>= filter)
+    query = query.gte("term_length_months", criteria.minTermMonths);
+  } else {
+    // Default to 12-month plans
+    query = query.eq("term_length_months", 12);
+  }
+  const termMonths = criteria.termMonths ?? criteria.minTermMonths ?? 12;
   if (criteria.renewableOnly) {
     query = query.eq("renewable_percent", 100);
   }
@@ -137,7 +144,7 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   }
 
   // Calculate effective rates and estimates based on user's usage level
-  const plansWithEstimates: EnergyPlanWithEstimate[] = (plansResult.data || [])
+  let plansWithEstimates: EnergyPlanWithEstimate[] = (plansResult.data || [])
     .map((plan: EnergyPlan) => ({
       ...plan,
       effectiveRate: getEffectiveRate(plan, usageKwh),
@@ -146,42 +153,58 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
     // Sort by effective rate (interpolated based on usage)
     .sort((a, b) => a.effectiveRate - b.effectiveRate);
 
-  // Priority retailers - always show at least 1 plan from each (if available)
-  const PRIORITY_RETAILERS = ["Reliant", "TXU Energy"];
-
-  // Separate priority retailer plans from others
-  const priorityPlans: EnergyPlanWithEstimate[] = [];
-  const otherPlans: EnergyPlanWithEstimate[] = [];
-
-  for (const plan of plansWithEstimates) {
-    const retailerName = plan.retailer?.name || "";
-    const isPriority = PRIORITY_RETAILERS.some(pr =>
-      retailerName.toLowerCase().includes(pr.toLowerCase())
+  // Filter by retailer if specified (case-insensitive partial match)
+  if (criteria.retailer) {
+    const retailerFilter = criteria.retailer.toLowerCase();
+    plansWithEstimates = plansWithEstimates.filter(plan =>
+      plan.retailer?.name?.toLowerCase().includes(retailerFilter)
     );
-
-    if (isPriority) {
-      // Only keep cheapest plan per priority retailer (first one since already sorted)
-      const existing = priorityPlans.find(p =>
-        p.retailer?.name === plan.retailer?.name
-      );
-      if (!existing) {
-        priorityPlans.push(plan);
-      }
-    } else {
-      otherPlans.push(plan);
-    }
   }
 
-  // Combine: priority plans + fill remaining slots with cheapest others
-  const maxPlans = 6;
-  const remainingSlots = Math.max(0, maxPlans - priorityPlans.length);
-  const selectedPlans = [
-    ...priorityPlans,
-    ...otherPlans.slice(0, remainingSlots)
-  ];
+  let selectedPlans: EnergyPlanWithEstimate[];
 
-  // Sort final selection by effective rate (interpolated based on usage)
-  selectedPlans.sort((a, b) => a.effectiveRate - b.effectiveRate);
+  if (criteria.retailer) {
+    // When filtering by retailer, show all matching plans (up to max)
+    const maxPlans = 6;
+    selectedPlans = plansWithEstimates.slice(0, maxPlans);
+  } else {
+    // Priority retailers - always show at least 1 plan from each (if available)
+    const PRIORITY_RETAILERS = ["Reliant", "TXU Energy"];
+
+    // Separate priority retailer plans from others
+    const priorityPlans: EnergyPlanWithEstimate[] = [];
+    const otherPlans: EnergyPlanWithEstimate[] = [];
+
+    for (const plan of plansWithEstimates) {
+      const retailerName = plan.retailer?.name || "";
+      const isPriority = PRIORITY_RETAILERS.some(pr =>
+        retailerName.toLowerCase().includes(pr.toLowerCase())
+      );
+
+      if (isPriority) {
+        // Only keep cheapest plan per priority retailer (first one since already sorted)
+        const existing = priorityPlans.find(p =>
+          p.retailer?.name === plan.retailer?.name
+        );
+        if (!existing) {
+          priorityPlans.push(plan);
+        }
+      } else {
+        otherPlans.push(plan);
+      }
+    }
+
+    // Combine: priority plans + fill remaining slots with cheapest others
+    const maxPlans = 6;
+    const remainingSlots = Math.max(0, maxPlans - priorityPlans.length);
+    selectedPlans = [
+      ...priorityPlans,
+      ...otherPlans.slice(0, remainingSlots)
+    ];
+
+    // Sort final selection by effective rate (interpolated based on usage)
+    selectedPlans.sort((a, b) => a.effectiveRate - b.effectiveRate);
+  }
 
   // Transform to frontend format
   const frontendPlans = selectedPlans.map(transformToFrontendPlan);
@@ -198,85 +221,3 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   };
 }
 
-/**
- * Get a single plan by ID with retailer and utility data
- */
-export async function getPlanById(
-  planId: string
-): Promise<EnergyPlan | null> {
-  const { data: plan, error } = await supabase
-    .from("plans")
-    .select(`
-      *,
-      retailer:retailers(id, name, puct_number, logo_url, website, phone, google_rating, google_reviews_url),
-      utility:utilities(id, code, name)
-    `)
-    .eq("id", planId)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") {
-      // No rows returned
-      return null;
-    }
-    console.error("Error fetching plan:", error);
-    throw new Error(`Failed to fetch plan: ${error.message}`);
-  }
-
-  return plan;
-}
-
-/**
- * Get all plan IDs (for error messages)
- */
-export async function getAllPlanIds(): Promise<string[]> {
-  const { data: plans, error } = await supabase.from("plans").select("id");
-
-  if (error) {
-    console.error("Error fetching plan IDs:", error);
-    return [];
-  }
-
-  return (plans || []).map((p) => p.id);
-}
-
-/**
- * Calculate detailed bill estimate for a specific plan
- * Uses interpolated rate based on usage level
- */
-export async function getEstimate(
-  planId: string,
-  usageKwh: number
-): Promise<EstimateResult | null> {
-  const plan = await getPlanById(planId);
-
-  if (!plan) {
-    return null;
-  }
-
-  const effectiveRate = getEffectiveRate(plan, usageKwh);
-  const estimate = usageKwh * effectiveRate;
-
-  // Breakdown is simplified since rate is all-in
-  const breakdown: BillBreakdown = {
-    energyCharge: estimate,
-    retailerBaseFee: 0,
-    tduDeliveryCharge: 0,
-    tduBaseFee: 0,
-    utilityName: plan.utility?.name,
-  };
-
-  // Transform plan to frontend format and include monthlyEstimate
-  const planWithEstimate: EnergyPlanWithEstimate = {
-    ...plan,
-    effectiveRate,
-    monthlyEstimate: estimate,
-  };
-
-  return {
-    plan: transformToFrontendPlan(planWithEstimate),
-    usageKwh,
-    estimate,
-    breakdown,
-  };
-}

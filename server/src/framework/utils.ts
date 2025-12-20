@@ -15,13 +15,39 @@ export function zodToJsonSchema(schema: z.ZodType): any {
     const required: string[] = [];
     
     for (const [key, value] of Object.entries(shape)) {
-      const fieldSchema = value as z.ZodType;
-      const fieldDef = (fieldSchema as any)._def;
-      
+      let fieldDef = (value as any)._def;
+      let isOptional = false;
+      let description: string | undefined;
+
+      // Unwrap nested types (ZodOptional, ZodEffects, ZodDefault)
+      // Capture description from any layer (first non-undefined wins)
+      while (fieldDef) {
+        if (fieldDef.description && !description) {
+          description = fieldDef.description;
+        }
+        if (fieldDef.typeName === "ZodOptional" || fieldDef.typeName === "ZodNullable") {
+          isOptional = true;
+          fieldDef = fieldDef.innerType?._def;
+        } else if (fieldDef.typeName === "ZodEffects") {
+          // .coerce wraps in ZodEffects
+          fieldDef = fieldDef.schema?._def;
+        } else if (fieldDef.typeName === "ZodDefault") {
+          fieldDef = fieldDef.innerType?._def;
+        } else {
+          break;
+        }
+      }
+
+      if (!fieldDef) continue;
+
+      // Also check the final unwrapped type for description
+      if (fieldDef.description && !description) {
+        description = fieldDef.description;
+      }
+
       // Map basic types
       let type = "string";
-      let description = fieldDef.description;
-      
+
       if (fieldDef.typeName === "ZodString") {
         type = "string";
       } else if (fieldDef.typeName === "ZodNumber") {
@@ -33,14 +59,14 @@ export function zodToJsonSchema(schema: z.ZodType): any {
       } else if (fieldDef.typeName === "ZodObject") {
         type = "object";
       }
-      
+
       properties[key] = {
         type,
         ...(description && { description })
       };
-      
+
       // Add to required if not optional
-      if (!fieldDef.isOptional && fieldDef.typeName !== "ZodOptional") {
+      if (!isOptional) {
         required.push(key);
       }
     }
