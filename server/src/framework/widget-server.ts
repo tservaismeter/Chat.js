@@ -85,12 +85,14 @@ export class McpWidgetServer {
       description: widget.description || widget.title,
       inputSchema: zodToJsonSchema(widget.schema),
       title: widget.title,
+      annotations: widget.annotations,
       _meta: generateWidgetMeta(
         widget.component,
         widget.title,
         widget.meta?.invoking,
         widget.meta?.invoked,
-        widget.meta?.widgetDescription
+        widget.meta?.widgetDescription,
+        widget.csp
       )
     };
   }
@@ -110,7 +112,8 @@ export class McpWidgetServer {
         widget.title,
         widget.meta?.invoking,
         widget.meta?.invoked,
-        widget.meta?.widgetDescription
+        widget.meta?.widgetDescription,
+        widget.csp
       )
     };
   }
@@ -130,7 +133,8 @@ export class McpWidgetServer {
         widget.title,
         widget.meta?.invoking,
         widget.meta?.invoked,
-        widget.meta?.widgetDescription
+        widget.meta?.widgetDescription,
+        widget.csp
       )
     };
   }

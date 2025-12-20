@@ -103,14 +103,18 @@ export function generateAssetHash(version: string): string {
  * Generate widget metadata
  */
 export function generateWidgetMeta(
-  widgetId: string, 
-  title: string, 
-  invoking?: string, 
+  widgetId: string,
+  title: string,
+  invoking?: string,
   invoked?: string,
-  widgetDescription?: string
+  widgetDescription?: string,
+  csp?: {
+    connect_domains?: string[];
+    resource_domains?: string[];
+  }
 ) {
   const templateUri = `ui://widget/${widgetId}.html`;
-  
+
   const meta: Record<string, any> = {
     "openai/outputTemplate": templateUri,
     "openai/toolInvocation/invoking": invoking || `Loading ${title}...`,
@@ -118,12 +122,15 @@ export function generateWidgetMeta(
     "openai/widgetAccessible": true,
     "openai/resultCanProduceWidget": true
   };
-  
-  // Add widgetDescription if provided
+
   if (widgetDescription) {
     meta["openai/widgetDescription"] = widgetDescription;
   }
-  
+
+  if (csp) {
+    meta["openai/widgetCSP"] = csp;
+  }
+
   return meta;
 }
 

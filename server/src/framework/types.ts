@@ -50,6 +50,24 @@ export type WidgetDefinition<TSchema extends z.ZodType = z.ZodType> = {
     /** Widget description - helps model understand widget's role */
     widgetDescription?: string;
   };
+
+  /** MCP tool annotations (optional) */
+  annotations?: {
+    /** If true, the tool does not modify state */
+    readOnlyHint?: boolean;
+    /** If true, the tool may delete or overwrite data */
+    destructiveHint?: boolean;
+    /** If true, the tool may publish content outside the user's account */
+    openWorldHint?: boolean;
+  };
+
+  /** CSP configuration for widget sandbox */
+  csp?: {
+    /** Hosts the widget can fetch from */
+    connect_domains?: string[];
+    /** Hosts for static assets (images, fonts, scripts) */
+    resource_domains?: string[];
+  };
 };
 
 /**

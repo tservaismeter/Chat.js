@@ -23,7 +23,7 @@ const widgets = [
   {
     component: "get-plans",  // → src/components/get-plans/
     title: "Get Energy Plans",
-    description: "Search and filter energy plans for a Texas ZIP code. Supports filtering by retailer name, contract term length, and renewable-only options.",
+    description: "Use this when the user wants to find or compare electricity plans in Texas. Searches by ZIP code with optional filters for usage, contract length, renewable energy, and retailer.",
     schema: z.object({
       zipCode: z.string().describe("Texas ZIP code for available plans"),
       usageKwh: z
@@ -77,14 +77,22 @@ const widgets = [
       invoking: "Looking up your utility and searching plans…",
       invoked: "Plans loaded",
       widgetDescription:
-        "Displays a comparison table of Texas energy plans with retailer, rate, term, renewable status, and monthly estimate."
+        "Shows energy plan cards with pricing, retailer info, and sign-up links."
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false
+    },
+    csp: {
+      resource_domains: ["https://mcp.meterplan.com"]
     }
   }
 ];
 
 // Create and start server (framework handles everything automatically)
 const server = createMcpWidgetServer({
-  name: "energy-mcp-node",
+  name: "texas-electricity-plans",
   version: frontendPkg.version,  // Auto-synced with chatjs/package.json!
   widgets,
   port: Number(process.env.PORT ?? 8000),
