@@ -390,6 +390,63 @@ export class McpWidgetServer {
         return;
       }
 
+      // Proxy logos from Supabase Storage (bypasses CSP issues with external domains)
+      if ((req.method === "GET" || req.method === "OPTIONS") && url.pathname.startsWith("/assets/logos/")) {
+        const filename = decodeURIComponent(url.pathname.slice("/assets/logos/".length));
+        if (!filename || filename.includes("..") || filename.includes("/")) {
+          res.writeHead(400).end("Invalid filename");
+          return;
+        }
+
+        if (req.method === "OPTIONS") {
+          res.writeHead(204, {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "content-type",
+            "Cross-Origin-Resource-Policy": "cross-origin",
+          });
+          res.end();
+          return;
+        }
+
+        const supabaseUrl = `https://amlbrptgggmwdwdxltlj.supabase.co/storage/v1/object/public/logos/${filename}`;
+        try {
+          const upstream = await fetch(supabaseUrl);
+          if (!upstream.ok) {
+            res.writeHead(upstream.status).end(upstream.statusText);
+            return;
+          }
+
+          const contentType = upstream.headers.get("content-type") || "application/octet-stream";
+          res.writeHead(200, {
+            "Content-Type": contentType,
+            "Cache-Control": "public, max-age=86400", // 24 hour cache
+            "Access-Control-Allow-Origin": "*",
+            "Cross-Origin-Resource-Policy": "cross-origin",
+          });
+
+          // Stream the response
+          const reader = upstream.body?.getReader();
+          if (reader) {
+            const pump = async () => {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                res.write(value);
+              }
+              res.end();
+            };
+            pump().catch(() => res.end());
+          } else {
+            res.end();
+          }
+        } catch (err) {
+          console.error("Failed to proxy logo:", err);
+          res.writeHead(502).end("Failed to fetch logo");
+        }
+        return;
+      }
+
       if ((req.method === "GET" || req.method === "OPTIONS") && url.pathname.startsWith("/assets/")) {
         const relativePath = decodeURIComponent(url.pathname.slice("/assets/".length));
         if (!relativePath) {

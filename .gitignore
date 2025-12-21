@@ -3,8 +3,7 @@ node_modules/
 .pnpm-store/
 
 # Build outputs
-/assets/*
-!/assets/logos/
+/assets
 dist/
 build/
 .vite/
