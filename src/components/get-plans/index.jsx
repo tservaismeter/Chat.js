@@ -149,8 +149,8 @@ function App() {
   }
 
   return (
-    <div className="antialiased w-full text-black dark:text-white relative py-2">
-      <div className="overflow-hidden" ref={emblaRef}>
+    <div className="antialiased w-full text-black dark:text-white relative py-2 overflow-y-hidden">
+      <div className="overflow-x-auto overflow-y-hidden" ref={emblaRef}>
         <div className="flex gap-3">
           {plans.map((plan, index) => (
             <PlanCard
