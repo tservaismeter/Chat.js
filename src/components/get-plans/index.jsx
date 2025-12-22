@@ -40,9 +40,7 @@ function StarRating({ rating, max = 5 }) {
   );
 }
 
-function PlanCard({ plan, formatCents, formatDollars }) {
-  const monthlyEstimate = formatDollars(plan.monthlyEstimate);
-
+function PlanCard({ plan, formatCents }) {
   return (
     <div className="min-w-[200px] max-w-[200px] flex-shrink-0 flex flex-col p-2 bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       {/* Retailer logo - fixed height for alignment */}
@@ -85,11 +83,6 @@ function PlanCard({ plan, formatCents, formatDollars }) {
           {formatCents(plan.energyRate)}
         </span>
         <span className="text-xs text-black/50 dark:text-white/50 ml-0.5">cents/kWh</span>
-      </div>
-
-      {/* Monthly estimate */}
-      <div className="text-[11px] text-black/60 dark:text-white/60 mt-0.5">
-        {monthlyEstimate ? `~$${monthlyEstimate}/mo` : null}
       </div>
 
       {/* CTA - pushed to bottom */}
@@ -164,7 +157,6 @@ function App() {
               key={`${plan.id || plan.retailer}-${plan.name}-${index}`}
               plan={plan}
               formatCents={formatCents}
-              formatDollars={formatDollars}
             />
           ))}
         </div>
