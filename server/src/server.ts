@@ -21,7 +21,7 @@ const publicOrigin =
 // Define widgets (component maps to src/components/{component}/)
 const widgets = [
   {
-    component: "get-plans",  // → src/components/get-plans/
+    component: "list-plans",  // → src/components/list-plans/
     title: "Get Energy Plans",
     description: "Use this when the user wants to find or compare electricity plans in Texas. Searches by ZIP code with optional filters for usage, contract length, renewable energy, and retailer. Do not use for other states or utility services like gas or water.",
     schema: z.object({
@@ -84,11 +84,14 @@ const widgets = [
       destructiveHint: false,
       openWorldHint: false
     },
-    csp: {
-      connect_domains: ["https://mcp.meterplan.com"],
-      resource_domains: ["https://mcp.meterplan.com"]
-    },
-    widgetDomain: "https://mcp.meterplan.com"
+    // Only set CSP in production - local dev needs permissive defaults
+    ...(!publicOrigin ? {
+      csp: {
+        connect_domains: ["https://mcp.meterplan.com"],
+        resource_domains: ["https://mcp.meterplan.com"]
+      },
+      widgetDomain: "https://mcp.meterplan.com"
+    } : {})
   }
 ];
 

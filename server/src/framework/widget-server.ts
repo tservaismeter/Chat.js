@@ -22,7 +22,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import type { ServerConfig, WidgetDefinition, WidgetMeta } from "./types.js";
-import { generateAssetHash, generateWidgetHtml, generateWidgetMeta, zodToJsonSchema } from "./utils.js";
+import { generateAssetHash, generateWidgetHtml, generateInlineWidgetHtml, generateWidgetMeta, zodToJsonSchema } from "./utils.js";
 
 type SessionRecord = {
   server: Server;
@@ -41,11 +41,16 @@ export class McpWidgetServer {
 
   constructor(config: ServerConfig) {
     this.config = config;
-    
+
     // Generate asset hash from version (matches build-all.mts logic)
     const assetHash = generateAssetHash(config.version);
     const frontendUrl = config.frontendUrl ?? "https://mcp.meterplan.com/assets";
-    
+
+    // Detect local development mode (ngrok or localhost in URL)
+    const isLocalDev = frontendUrl.includes('ngrok') || frontendUrl.includes('localhost');
+
+    this.assetsDir = resolve(import.meta.dirname, "../../../assets");
+
     // Process widgets: auto-generate missing fields
     const processedWidgets = config.widgets.map(widget => {
       const component = widget.component;
@@ -56,23 +61,38 @@ export class McpWidgetServer {
         rootElement: widget.rootElement ?? `${component}-root`
       };
     });
-    
+
     // Pre-generate widget metadata
-    this.widgetMetas = processedWidgets.map(widget => ({
-      component: widget.component,
-      title: widget.title,
-      templateUri: `ui://widget/${widget.component}.html`,
-      html: generateWidgetHtml(widget.rootElement!, widget.htmlSrc!, widget.cssSrc),
-      definition: widget
-    }));
+    this.widgetMetas = processedWidgets.map(widget => {
+      const component = widget.component;
+      const rootElement = widget.rootElement!;
 
-    this.assetsDir = resolve(import.meta.dirname, "../../../assets");
+      // For local dev, inline assets to bypass ngrok interstitial
+      // For production, use external URLs for CDN caching
+      let html: string;
+      if (isLocalDev) {
+        const inlineHtml = generateInlineWidgetHtml(rootElement, this.assetsDir, component, assetHash);
+        if (inlineHtml) {
+          html = inlineHtml;
+          console.log(`[MCP] Widget "${component}": using INLINE assets (local dev mode)`);
+        } else {
+          // Fallback to external URLs if inline fails
+          html = generateWidgetHtml(rootElement, widget.htmlSrc!, widget.cssSrc);
+          console.warn(`[MCP] Widget "${component}": inline failed, falling back to external URLs`);
+        }
+      } else {
+        html = generateWidgetHtml(rootElement, widget.htmlSrc!, widget.cssSrc);
+      }
 
-    // Debug: log generated schemas at startup
-    for (const meta of this.widgetMetas) {
-      const schema = zodToJsonSchema(meta.definition.schema);
-      console.log(`[MCP] Schema for ${meta.component}:`, JSON.stringify(schema, null, 2));
-    }
+      return {
+        component: widget.component,
+        title: widget.title,
+        templateUri: `ui://widget/${widget.component}.html`,
+        html,
+        definition: widget
+      };
+    });
+
   }
 
   /**
@@ -160,11 +180,7 @@ export class McpWidgetServer {
     );
 
     // Create Tools, Resources, ResourceTemplates
-    const tools = this.widgetMetas.map(w => {
-      const tool = this.widgetToTool(w);
-      console.log(`[MCP] Tool schema for ${tool.name}:`, JSON.stringify(tool.inputSchema, null, 2));
-      return tool;
-    });
+    const tools = this.widgetMetas.map(w => this.widgetToTool(w));
     const resources = this.widgetMetas.map(w => this.widgetToResource(w));
     const resourceTemplates = this.widgetMetas.map(w => this.widgetToResourceTemplate(w));
 
@@ -233,8 +249,6 @@ export class McpWidgetServer {
     server.setRequestHandler(
       CallToolRequestSchema,
       async (request: CallToolRequest) => {
-        console.log(`[MCP] CallTool: ${request.params.name}`, request.params.arguments);
-
         try {
           const widgetMeta = widgetsByComponent.get(request.params.name);
 
@@ -249,8 +263,6 @@ export class McpWidgetServer {
 
           // Execute user-defined handler
           const result = await widget.handler(args);
-
-          console.log(`[MCP] CallTool result:`, { text: result.text, planCount: result.data?.plans?.length });
 
           return {
             content: [
@@ -357,9 +369,6 @@ export class McpWidgetServer {
     const assetsDir = this.assetsDir;
 
     const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-      // Log ALL incoming requests
-      console.log(`[HTTP] ${req.method} ${req.url}`);
-
       if (!req.url) {
         res.writeHead(400).end("Missing URL");
         return;

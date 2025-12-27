@@ -1,5 +1,7 @@
 import type { z } from "zod";
 import crypto from "node:crypto";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Convert Zod schema to JSON Schema
@@ -147,17 +149,55 @@ export function generateWidgetMeta(
 }
 
 /**
- * Generate widget HTML
+ * Generate widget HTML with external asset URLs
  */
 export function generateWidgetHtml(rootElement: string, htmlSrc: string, cssSrc?: string): string {
   const parts = [`<div id="${rootElement}"></div>`];
-  
+
   if (cssSrc) {
     parts.push(`<link rel="stylesheet" href="${cssSrc}">`);
   }
-  
+
   parts.push(`<script type="module" src="${htmlSrc}"></script>`);
-  
+
   return parts.join('\n');
+}
+
+/**
+ * Generate widget HTML with inlined assets (for local development)
+ * Reads JS/CSS files from disk and embeds them directly in the HTML
+ */
+export function generateInlineWidgetHtml(
+  rootElement: string,
+  assetsDir: string,
+  component: string,
+  assetHash: string
+): string | null {
+  const jsPath = resolve(assetsDir, `${component}-${assetHash}.js`);
+  const cssPath = resolve(assetsDir, `${component}-${assetHash}.css`);
+
+  // Check if files exist
+  if (!existsSync(jsPath)) {
+    console.warn(`[MCP] Inline mode: JS file not found: ${jsPath}`);
+    return null;
+  }
+
+  try {
+    const jsContent = readFileSync(jsPath, 'utf8');
+    const cssContent = existsSync(cssPath) ? readFileSync(cssPath, 'utf8') : '';
+
+    const parts = [`<div id="${rootElement}"></div>`];
+
+    if (cssContent) {
+      parts.push(`<style>${cssContent}</style>`);
+    }
+
+    parts.push(`<script type="module">${jsContent}</script>`);
+
+    return parts.join('\n');
+  } catch (err) {
+    console.error(`[MCP] Failed to read assets for inline mode:`, err);
+    return null;
+  }
 }
 

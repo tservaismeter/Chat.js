@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Reset for ChatGPT widget iframe */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
 @layer utilities {
   .overflow-auto > *,
   .overflow-scroll > *,
