@@ -22,7 +22,7 @@ function StarRating({ rating, reviewsUrl, size = "sm" }) {
 
   const content = (
     <div className="flex items-center gap-1">
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 pointer-events-none">
         {[...Array(5)].map((_, i) => {
           const fill = Math.min(1, Math.max(0, rating - i));
 
