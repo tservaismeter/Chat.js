@@ -221,7 +221,7 @@ function PlanDetailCarousel({ plans, initialIndex, onBack }) {
   }, [emblaApi]);
 
   return (
-    <div className="antialiased min-h-screen bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col">
+    <div className="antialiased min-h-screen bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Navigation Header - centered, no back button (ChatGPT provides X) */}
       <div className="flex items-center justify-center px-4 py-2 border-b border-black/10 dark:border-white/10">
         <div className="flex items-center gap-3">
