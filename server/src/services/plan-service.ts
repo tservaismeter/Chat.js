@@ -123,11 +123,11 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   } else if (criteria.minTermMonths) {
     // Minimum term (>= filter)
     query = query.gte("term_length_months", criteria.minTermMonths);
-  } else {
-    // Default to 12-month plans
+  } else if (!criteria.retailer) {
+    // Default to 12-month plans ONLY when not filtering by retailer
     query = query.eq("term_length_months", 12);
   }
-  const termMonths = criteria.termMonths ?? criteria.minTermMonths ?? 12;
+  const termMonths = criteria.termMonths ?? criteria.minTermMonths ?? (criteria.retailer ? null : 12);
   if (criteria.renewableOnly) {
     query = query.eq("renewable_percent", 100);
   }
