@@ -533,6 +533,16 @@ export class McpWidgetServer {
         return;
       }
 
+      // Handle OpenAI domain verification
+      if (req.method === "GET" && url.pathname === "/.well-known/openai-apps-challenge") {
+        res.writeHead(200, {
+          "Content-Type": "text/plain",
+          "Access-Control-Allow-Origin": "*",
+        });
+        res.end("CQ5mjConbaq7fV8g1XjiWN4epJ1HzBvYUNIiFTnSONs");
+        return;
+      }
+
       res.writeHead(404).end("Not Found");
     });
 
