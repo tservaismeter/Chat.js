@@ -476,7 +476,7 @@ function App() {
   );
 }
 
-const rootElement = document.getElementById("list-plans-root");
+const rootElement = document.getElementById("get-plans-root");
 if (rootElement) {
   createRoot(rootElement).render(<App />);
 }
