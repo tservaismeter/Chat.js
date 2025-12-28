@@ -191,8 +191,6 @@ function PlanDetailSlide({ plan }) {
 
 // Fullscreen carousel with swipe navigation
 function PlanDetailCarousel({ plans, initialIndex, onBack }) {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     loop: false,
@@ -223,7 +221,7 @@ function PlanDetailCarousel({ plans, initialIndex, onBack }) {
   }, [emblaApi]);
 
   return (
-    <div className={`antialiased min-h-screen bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col ${isIOS ? 'pt-14' : ''}`}>
+    <div className="antialiased min-h-screen bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col pt-14">
       {/* Navigation Header - centered, no back button (ChatGPT provides X) */}
       <div className="flex items-center justify-center px-4 py-2 border-b border-black/10 dark:border-white/10">
         <div className="flex items-center gap-3">
