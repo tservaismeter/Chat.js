@@ -119,7 +119,8 @@
     });
 
     const SUPABASE_URL = 'https://amlbrptgggmwdwdxltlj.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtbGJycHRnZ2dtd2R3ZHhsdGxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNDQxMjAsImV4cCI6MjA1OTcyMDEyMH0.x8rJBcqF9EcX7Ja1npxIXDmsvUJ3wQwD-gVvHDI7Q2A';
+    // NOTE: Service role key provided for local admin import. Do not deploy this version publicly.
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtbGJycHRnZ2dtd2R3ZHhsdGxqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDE0NDEyMCwiZXhwIjoyMDU5NzIwMTIwfQ.Zslqga34u4Rm1e6acIKtabmeZ446n1ntfuMMF4MuOdw';
 
     let supabaseClient;
     try {
@@ -530,6 +531,7 @@
 
       let imported = 0;
       let errors = [];
+      const resultDiv = document.getElementById('import-result');
 
       try {
         // Step 0: Delete all existing plans
@@ -542,9 +544,19 @@
           .neq('id', ''); // Delete all rows
 
         if (deleteError) {
-          throw new Error(`Failed to clear plans: ${deleteError.message}`);
+          // If the anon key no longer has delete permissions, continue with an upsert-only import
+          if (deleteError.message?.toLowerCase().includes('permission denied')) {
+            console.warn('Delete skipped: lacking permission; proceeding with upserts only.');
+            resultDiv.classList.remove('hidden');
+            resultDiv.classList.remove('bg-green-50', 'text-green-800', 'border-green-200');
+            resultDiv.classList.add('bg-yellow-50', 'text-yellow-800', 'border', 'border-yellow-200');
+            resultDiv.innerHTML = '<strong>Warning:</strong> Could not clear existing plans (permission denied). Continuing with upserts only.';
+          } else {
+            throw new Error(`Failed to clear plans: ${deleteError.message}`);
+          }
+        } else {
+          existingPlans.clear();
         }
-        existingPlans.clear();
 
         // Step 1: Batch upsert all unique retailers (with normalized names and phones)
         const uniqueRetailers = [...new Map(toImport.map(row => {
@@ -626,7 +638,6 @@
       progressBar.style.width = '100%';
       progressText.textContent = 'Complete!';
 
-      const resultDiv = document.getElementById('import-result');
       resultDiv.classList.remove('hidden');
 
       if (errors.length === 0) {
