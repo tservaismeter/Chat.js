@@ -376,6 +376,11 @@ export class McpWidgetServer {
 
       const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
 
+      // Add request logging middleware
+      res.on('finish', () => {
+        console.log(`${new Date().toISOString()} ${req.method} ${req.url} → ${res.statusCode} headers: ${JSON.stringify(req.headers)}`);
+      });
+
       // Handle CORS preflight
       if (req.method === "OPTIONS" && (url.pathname === ssePath || url.pathname === postPath)) {
         res.writeHead(204, {
@@ -533,6 +538,13 @@ export class McpWidgetServer {
         return;
       }
 
+      // Handle health check
+      if (req.method === "GET" && url.pathname === "/health") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("ok");
+        return;
+      }
+
       // Handle OpenAI domain verification
       if (req.method === "GET" && url.pathname === "/.well-known/openai-apps-challenge") {
         res.writeHead(200, {
@@ -546,9 +558,9 @@ export class McpWidgetServer {
       res.writeHead(404).end("Not Found");
     });
 
-    httpServer.on("clientError", (err: Error, socket) => {
-      console.error("HTTP client error", err);
-      socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+    httpServer.on("clientError", (err: any, socket) => {
+      console.log(`clientError: ${err.code}`);
+      socket.destroy();
     });
 
     httpServer.listen(port, () => {
