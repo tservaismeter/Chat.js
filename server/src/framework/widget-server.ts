@@ -555,6 +555,20 @@ export class McpWidgetServer {
         return;
       }
 
+      // Block crawlers
+      if (req.method === "GET" && url.pathname === "/robots.txt") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("User-agent: *\nDisallow: /");
+        return;
+      }
+
+      // Root status endpoint
+      if (req.method === "GET" && url.pathname === "/") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "ok", service: this.config.name }));
+        return;
+      }
+
       res.writeHead(404).end("Not Found");
     });
 
@@ -571,6 +585,16 @@ export class McpWidgetServer {
       this.config.widgets.forEach(w => {
         console.log(`    - ${w.component}: ${w.title}`);
       });
+    });
+
+    // Graceful shutdown for Railway container recycling
+    process.on("SIGTERM", () => {
+      console.log("SIGTERM received, shutting down gracefully...");
+      httpServer.close(() => {
+        console.log("Server closed");
+        process.exit(0);
+      });
+      setTimeout(() => process.exit(0), 5000);
     });
 
     return httpServer;
