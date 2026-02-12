@@ -1,5 +1,12 @@
 import type { z } from "zod";
 
+export type HealthStatus = "ok" | "degraded" | "down";
+
+export type HealthSnapshot = {
+  status: HealthStatus;
+  [key: string]: unknown;
+};
+
 /**
  * Widget definition type
  * Core type used when defining widgets
@@ -111,6 +118,11 @@ export type ServerConfig = {
    * Default: "http://localhost:4444"
    */
   frontendUrl?: string;
+
+  /**
+   * Optional runtime health provider used by /health and /ready endpoints.
+   */
+  healthProvider?: () => HealthSnapshot;
 };
 
 /**
@@ -123,4 +135,3 @@ export type WidgetMeta = {
   html: string;
   definition: WidgetDefinition;
 };
-

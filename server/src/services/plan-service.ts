@@ -4,6 +4,7 @@
 
 import { supabase } from "./supabase.js";
 import { getUtilityForZipcode } from "./light-api.js";
+import { diagnostics } from "../diagnostics.js";
 import type {
   EnergyPlan,
   EnergyPlanWithEstimate,
@@ -85,11 +86,21 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   const utilityCode = await getUtilityForZipcode(criteria.zipCode);
 
   // Get utility info from code
-  const { data: utilityInfo } = await supabase
+  const utilityResult = await supabase
     .from("utilities")
     .select("id, code, name")
     .eq("code", utilityCode)
     .single();
+  const utilityInfo = utilityResult.data;
+
+  if (utilityResult.error) {
+    diagnostics.markDependencyDown(
+      "supabase",
+      utilityResult.error,
+      "Failed to fetch utility for ZIP lookup"
+    );
+    throw new Error(`Failed to fetch utility info: ${utilityResult.error.message}`);
+  }
 
   // Fetch plans with retailer and utility data via JOINs
   let query = supabase.from("plans").select(`
@@ -101,6 +112,10 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
   // If we couldn't determine the utility, return empty results instead of all plans
   if (!utilityInfo) {
     console.error(`No utility found for code: ${utilityCode}`);
+    diagnostics.markDependencyDegraded(
+      "supabase",
+      `No utility row found for code ${utilityCode}`
+    );
     return {
       criteria: {
         zipCode: criteria.zipCode,
@@ -140,8 +155,11 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
 
   if (plansResult.error) {
     console.error("Error fetching plans:", plansResult.error);
+    diagnostics.markDependencyDown("supabase", plansResult.error, "Failed to fetch plans");
     throw new Error(`Failed to fetch plans: ${plansResult.error.message}`);
   }
+
+  diagnostics.markDependencyOk("supabase", `Plans query succeeded for ZIP ${criteria.zipCode}`);
 
   // Calculate effective rates and estimates based on user's usage level
   let plansWithEstimates: EnergyPlanWithEstimate[] = (plansResult.data || [])
@@ -220,4 +238,3 @@ export async function getPlans(criteria: PlanCriteria): Promise<PlansResult> {
     plans: frontendPlans,
   };
 }
-

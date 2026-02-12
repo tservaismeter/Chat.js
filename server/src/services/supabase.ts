@@ -3,17 +3,24 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { appConfig } from "../config.js";
+import { diagnostics } from "../diagnostics.js";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+export const supabase = createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey);
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn(
-    "Warning: SUPABASE_URL or SUPABASE_ANON_KEY not set. Database queries will fail."
-  );
+/**
+ * Lightweight startup check to validate Supabase connectivity and permissions.
+ */
+export async function verifySupabaseConnectivity(): Promise<void> {
+  const { error } = await supabase
+    .from("utilities")
+    .select("id", { head: true, count: "exact" })
+    .limit(1);
+
+  if (error) {
+    diagnostics.markDependencyDown("supabase", error, "Supabase startup check failed");
+    throw new Error(`Supabase connectivity check failed: ${error.message}`);
+  }
+
+  diagnostics.markDependencyOk("supabase", "Supabase connectivity check passed");
 }
-
-export const supabase = createClient(
-  supabaseUrl || "",
-  supabaseKey || ""
-);

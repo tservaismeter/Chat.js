@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type IncomingHttpHeaders, type ServerResponse } from "node:http";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { URL } from "node:url";
 import { extname, resolve, sep } from "node:path";
@@ -93,6 +93,25 @@ export class McpWidgetServer {
       };
     });
 
+  }
+
+  private getRequestLogHeaders(headers: IncomingHttpHeaders): Record<string, string> {
+    const allowList = [
+      "host",
+      "user-agent",
+      "x-forwarded-for",
+      "x-forwarded-proto",
+      "x-railway-request-id",
+      "x-request-start",
+    ] as const;
+
+    const out: Record<string, string> = {};
+    for (const key of allowList) {
+      const value = headers[key];
+      if (!value) continue;
+      out[key] = Array.isArray(value) ? value.join(", ") : value;
+    }
+    return out;
   }
 
   /**
@@ -374,11 +393,16 @@ export class McpWidgetServer {
         return;
       }
 
-      const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
+      // Requests that begin with `//` are interpreted by WHATWG URL as an authority
+      // (host), which can incorrectly coerce paths like `//xmlrpc.php?rsd` into `/`.
+      // Normalize to a single leading slash before parsing.
+      const normalizedUrl = req.url.replace(/^\/{2,}/, "/");
+      const url = new URL(normalizedUrl, `http://${req.headers.host ?? "localhost"}`);
 
       // Add request logging middleware
-      res.on('finish', () => {
-        console.log(`${new Date().toISOString()} ${req.method} ${req.url} → ${res.statusCode} headers: ${JSON.stringify(req.headers)}`);
+      res.on("finish", () => {
+        const headers = this.getRequestLogHeaders(req.headers);
+        console.log(`${new Date().toISOString()} ${req.method} ${req.url} → ${res.statusCode} headers: ${JSON.stringify(headers)}`);
       });
 
       // Handle CORS preflight
@@ -538,10 +562,24 @@ export class McpWidgetServer {
         return;
       }
 
-      // Handle health check
+      // Runtime health (200 for ok/degraded, 503 for down)
       if (req.method === "GET" && url.pathname === "/health") {
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end("ok");
+        const health = this.config.healthProvider?.() ?? { status: "ok" as const };
+        const statusCode = health.status === "down" ? 503 : 200;
+        res.writeHead(statusCode, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(health));
+        return;
+      }
+
+      // Strict readiness (only 200 when fully healthy)
+      if (req.method === "GET" && url.pathname === "/ready") {
+        const health = this.config.healthProvider?.() ?? { status: "ok" as const };
+        const statusCode = health.status === "ok" ? 200 : 503;
+        res.writeHead(statusCode, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          status: health.status === "ok" ? "ready" : "not_ready",
+          healthStatus: health.status
+        }));
         return;
       }
 
@@ -559,6 +597,12 @@ export class McpWidgetServer {
       if (req.method === "GET" && url.pathname === "/robots.txt") {
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end("User-agent: *\nDisallow: /");
+        return;
+      }
+
+      // Avoid noisy 404s from browser favicon requests.
+      if (req.method === "GET" && url.pathname === "/favicon.ico") {
+        res.writeHead(204).end();
         return;
       }
 

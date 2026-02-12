@@ -8,7 +8,9 @@ export { McpWidgetServer, createMcpWidgetServer } from "./widget-server.js";
 export type { 
   WidgetDefinition, 
   WidgetHandlerResult, 
-  ServerConfig 
+  ServerConfig,
+  HealthSnapshot,
+  HealthStatus
 } from "./types.js";
 export { 
   zodToJsonSchema, 
@@ -16,4 +18,3 @@ export {
   generateWidgetHtml,
   generateAssetHash
 } from "./utils.js";
-
