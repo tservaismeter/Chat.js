@@ -40,7 +40,7 @@ export function initializeLightApiHealth(): void {
     return;
   }
 
-  diagnostics.markDependencyDegraded("light_api", "Configured; awaiting first successful lookup");
+  diagnostics.markDependencyOk("light_api", "Configured");
 }
 
 /**
